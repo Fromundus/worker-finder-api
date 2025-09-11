@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Application;
+use App\Models\Feedback;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -82,11 +84,6 @@ class UserController extends Controller
         return response()->noContent();
     }
 
-    public function show($id)
-    {
-        return User::with("activityLogs")->findOrFail($id);
-    }
-
     public function updateRole(Request $request){
         $validated = $request->validate([
             'ids' => 'required|array',
@@ -163,44 +160,6 @@ class UserController extends Controller
         }
     }
 
-    public function update(Request $request, $id)
-    {
-        $user = User::where("id", $id)->first();
-
-        if ($user) {
-            $validator = Validator::make($request->all(), [
-                'username' => 'required|string|min:3|max:50|unique:users,name,' . $user->id ,
-                'name' => 'required|string',
-                'role' => 'required|string',
-                'email' => 'required|email|unique:users,email,' . $user->id,
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    "message" => $validator->errors()
-                ], 422);
-            } else {
-                $user->update([
-                    "username" => $request->username,
-                    "name" => $request->name,
-                    "role" => $request->role,
-                    "email" => $request->email,
-                ]);
-
-                return response()->json([
-                    "status" => "200",
-                    "message" => "Account Updated Successfully",
-                    // "user" => $user,
-                ], 200);
-            }
-        } else {
-            return response()->json([
-                "status" => "404",
-                "message" => "User not found"
-            ], 404);
-        }
-    }
-
     public function resetPasswordDefault(Request $request){
         $request->validate([
             'id' => 'required',
@@ -231,6 +190,69 @@ class UserController extends Controller
         // }
 
         return response()->json(['message' => 'Users deleted successfully']);
+    }
+
+    public function show(Request $request)
+    {
+        $user = $request->user();
+
+        // Completed jobs (if worker → jobs they've done; if employer → jobs they've posted & filled)
+        $completedJobs = Application::where('user_id', $user->id)
+            ->where('status', 'accepted')
+            ->count();
+
+        $totalApplications = Application::where('user_id', $user->id)->count();
+
+        $feedback = Feedback::with('fromUser')
+            ->where('to_user_id', $user->id)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'user' => $user,
+            'completedJobs' => $completedJobs,
+            'totalApplications' => $totalApplications,
+            'feedback' => $feedback,
+        ]);
+    }
+
+    public function update(Request $request)
+    {
+        $user = $request->user();
+
+        $rules = [
+            'name' => 'required|string|max:255',
+            'contact_number' => 'nullable|string|max:20',
+            'email' => 'nullable|email|unique:users,email,' . $user->id,
+            'password' => 'nullable|min:6|confirmed',
+            'address' => 'nullable|string',
+            'lat' => 'nullable|string',
+            'lng' => 'nullable|string',
+        ];
+
+        if ($user->role === 'worker') {
+            $rules['skills'] = 'nullable|string';
+            $rules['experience'] = 'nullable|string';
+        }
+
+        if ($user->role === 'employer') {
+            $rules['business_name'] = 'nullable|string|max:255';
+        }
+
+        $validated = $request->validate($rules);
+
+        if ($request->filled('password')) {
+            $validated['password'] = bcrypt($request->password);
+        } else {
+            unset($validated['password']);
+        }
+
+        $user->update($validated);
+
+        return response()->json([
+            'message' => 'Profile updated successfully',
+            'user' => $user,
+        ]);
     }
 
 }

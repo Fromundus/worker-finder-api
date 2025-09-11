@@ -43,4 +43,27 @@ class FeedbackController extends Controller
             Feedback::where('to_user_id', $userId)->with('fromUser')->paginate(15)
         );
     }
+
+    public function index(Request $request)
+    {
+        $user = $request->user();
+
+        // If worker → feedback given to them
+        // If employer → feedback they gave to workers (or received from workers, depending on spec)
+        $feedback = Feedback::with(['fromUser', 'toUser', 'jobPost'])
+            ->where('to_user_id', $user->id) // feedback received by logged-in user
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        $averageRating = round($feedback->avg('rating'), 2);
+
+        $ratingCounts = $feedback->groupBy('rating')->map->count();
+
+        return response()->json([
+            'feedback' => $feedback,
+            'averageRating' => $averageRating,
+            'ratingCounts' => $ratingCounts,
+        ]);
+    }
+
 }

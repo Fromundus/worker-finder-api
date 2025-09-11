@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\ApplicationController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\JobPostController;
 use App\Http\Controllers\NotificationController;
@@ -22,8 +23,14 @@ Route::middleware(['auth:sanctum', 'active'])->group(function(){
             Route::put('/{id}', [UserController::class, 'update']);
             Route::delete('/', [UserController::class, 'delete']);
         });
+
     });
 
+    Route::get('/dashboard/worker', [DashboardController::class, 'workerOverview']);
+
+    Route::get('/profile', [UserController::class, 'show']);
+    Route::put('/profile', [UserController::class, 'update']);
+    
     Route::post('job-posts', [JobPostController::class, 'store']);
     Route::put('job-posts/{jobPost}', [JobPostController::class, 'update']);
     Route::delete('job-posts/{jobPost}', [JobPostController::class, 'destroy']);
@@ -34,6 +41,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function(){
 
     Route::post('feedback', [FeedbackController::class, 'store']);
     Route::get('feedback/{userId}', [FeedbackController::class, 'indexForUser']);
+    Route::get('feedbacks', [FeedbackController::class, 'index']);
 
     Route::get('notifications', [NotificationController::class, 'index']);
     Route::post('notifications', [NotificationController::class, 'store']);
