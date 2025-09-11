@@ -37,8 +37,12 @@ Route::middleware(['auth:sanctum', 'active'])->group(function(){
 
     Route::get('notifications', [NotificationController::class, 'index']);
     Route::post('notifications', [NotificationController::class, 'store']);
-    Route::post('notifications/{notification}/read', [NotificationController::class, 'markRead']);
+    // Route::post('notifications/{notification}/read', [NotificationController::class, 'markRead']);
+    Route::post('notifications/{id}', [NotificationController::class, 'markAsRead']);
     
+    Route::get('job-posts', [JobPostController::class, 'index']);
+    Route::get('job-posts/{jobPost}', [JobPostController::class, 'show']);
+
     //USER ACCOUNTS
     Route::put('/updateuser/{id}', [UserController::class, 'update']);
     Route::put('/changepassword/{id}', [UserController::class, 'changePassword']);
@@ -47,8 +51,8 @@ Route::middleware(['auth:sanctum', 'active'])->group(function(){
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('register', [AuthController::class, 'register']);
 
-Route::get('job-posts', [JobPostController::class, 'index']);
-Route::get('job-posts/{jobPost}', [JobPostController::class, 'show']);
+Route::get('job-posts-public', [JobPostController::class, 'indexPublic']);
+
 
 Route::get('/test', function(){
     return response()->json([

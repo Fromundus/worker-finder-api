@@ -31,12 +31,28 @@ class ApplicationController extends Controller
         return response()->json($application, 201);
     }
 
+    // public function myApplications(Request $request)
+    // {
+    //     return response()->json(
+    //         $request->user()->applications()->with('jobPost')->paginate(15)
+    //     );
+    // }
+
     public function myApplications(Request $request)
     {
-        return response()->json(
-            $request->user()->applications()->with('jobPost')->paginate(15)
-        );
+        $user = $request->user();
+
+        $applications = Application::with([
+            'jobPost.user',
+            'jobPost.location',
+        ])
+        ->where('user_id', $user->id)
+        ->orderBy('created_at', 'desc')
+        ->get();
+
+        return response()->json($applications);
     }
+
 
     public function updateStatus(Request $request, Application $application)
     {

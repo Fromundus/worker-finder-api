@@ -2,16 +2,47 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Application;
 use App\Models\JobPost;
 use App\Models\Location;
 use Illuminate\Http\Request;
 
 class JobPostController extends Controller
 {
-    public function index()
+    // public function index()
+    // {
+    //     return response()->json(JobPost::with('user','location')->latest()->paginate(15));
+    // }
+
+    public function index(Request $request)
     {
-        return response()->json(JobPost::with('user','location')->latest()->paginate(15));
+        $user = $request->user();
+
+        $jobs = JobPost::with(['user', 'location'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+        
+        $appliedJobs = Application::where('user_id', $user->id)
+            ->pluck('job_post_id')
+            ->toArray();
+
+        return response()->json([
+            'jobs' => $jobs,
+            'appliedJobs' => $appliedJobs,
+        ]);
     }
+
+    public function indexPublic()
+    {
+        $jobs = JobPost::with(['user', 'location'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'jobs' => $jobs,
+        ]);
+    }
+
 
     public function store(Request $request)
     {
