@@ -198,21 +198,31 @@ class UserController extends Controller
 
         // Completed jobs (if worker → jobs they've done; if employer → jobs they've posted & filled)
         $completedJobs = Application::where('user_id', $user->id)
-            ->where('status', 'accepted')
+            ->where('status', 'completed')
             ->count();
 
         $totalApplications = Application::where('user_id', $user->id)->count();
 
-        $feedback = Feedback::with('fromUser')
-            ->where('to_user_id', $user->id)
-            ->orderBy('created_at', 'desc')
-            ->get();
+        // $feedback = Feedback::with('fromUser')
+        //     ->where('to_user_id', $user->id)
+        //     ->orderBy('created_at', 'desc')
+        //     ->get();
+
+        $feedback = Feedback::with(['fromUser', 'toUser', 'jobPost'])
+        ->where('to_user_id', $user->id) // feedback received by logged-in user
+        ->orderBy('created_at', 'desc')
+        ->get();
+
+        $averageRating= round($feedback->avg('rating'), 2);
+
+        $ratingCounts = $feedback->groupBy('rating')->map->count();
 
         return response()->json([
             'user' => $user,
             'completedJobs' => $completedJobs,
             'totalApplications' => $totalApplications,
             'feedback' => $feedback,
+            'averageRating' =>  $averageRating,
         ]);
     }
 

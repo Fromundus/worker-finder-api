@@ -14,6 +14,8 @@ class Application extends Model
         'user_id',
         'status',
         'message',
+        'workerIsRated',
+        'employerIsRated'
     ];
 
 

@@ -27,28 +27,35 @@ Route::middleware(['auth:sanctum', 'active'])->group(function(){
     });
 
     Route::get('/dashboard/worker', [DashboardController::class, 'workerOverview']);
+    Route::get('/dashboard/employer', [DashboardController::class, 'employerOverview']);
 
     Route::get('/profile', [UserController::class, 'show']);
     Route::put('/profile', [UserController::class, 'update']);
     
     Route::post('job-posts', [JobPostController::class, 'store']);
     Route::put('job-posts/{jobPost}', [JobPostController::class, 'update']);
+    Route::put('job-posts/{id}/status', [JobPostController::class, 'updateStatus']);
     Route::delete('job-posts/{jobPost}', [JobPostController::class, 'destroy']);
 
     Route::post('applications', [ApplicationController::class, 'store']);
     Route::get('my-applications', [ApplicationController::class, 'myApplications']);
-    Route::patch('applications/{application}/status', [ApplicationController::class, 'updateStatus']);
+    Route::put('applications/{id}/status', [ApplicationController::class, 'updateStatus']);
+    Route::get('applications-employer', [ApplicationController::class, 'employerApplications']);
 
     Route::post('feedback', [FeedbackController::class, 'store']);
     Route::get('feedback/{userId}', [FeedbackController::class, 'indexForUser']);
     Route::get('feedbacks', [FeedbackController::class, 'index']);
 
+    Route::post('/feedbacks/{id}', [FeedbackController::class, 'store']);
+
     Route::get('notifications', [NotificationController::class, 'index']);
+    Route::get('notifications-count', [NotificationController::class, 'count']);
     Route::post('notifications', [NotificationController::class, 'store']);
     // Route::post('notifications/{notification}/read', [NotificationController::class, 'markRead']);
     Route::post('notifications/{id}', [NotificationController::class, 'markAsRead']);
     
     Route::get('job-posts', [JobPostController::class, 'index']);
+    Route::get('job-posts-employer', [JobPostController::class, 'indexEmployer']);
     Route::get('job-posts/{jobPost}', [JobPostController::class, 'show']);
 
     //USER ACCOUNTS

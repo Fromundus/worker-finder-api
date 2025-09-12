@@ -5,15 +5,12 @@ namespace App\Http\Controllers;
 use App\Models\Application;
 use App\Models\JobPost;
 use App\Models\Location;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class JobPostController extends Controller
 {
-    // public function index()
-    // {
-    //     return response()->json(JobPost::with('user','location')->latest()->paginate(15));
-    // }
-
     public function index(Request $request)
     {
         $user = $request->user();
@@ -32,6 +29,24 @@ class JobPostController extends Controller
         ]);
     }
 
+    public function indexEmployer(Request $request)
+    {
+        $user = $request->user();
+        
+        $jobs = JobPost::with([
+            'location',
+            'applications' => function ($q) {
+                $q->where('status', 'accepted')->orWhere('status', 'completed')->with('user');
+            }
+        ])
+        ->withCount('applications')
+        ->where('user_id', $user->id)
+        ->get();
+
+        return response()->json($jobs);
+    }
+
+
     public function indexPublic()
     {
         $jobs = JobPost::with(['user', 'location'])
@@ -43,41 +58,165 @@ class JobPostController extends Controller
         ]);
     }
 
-
     public function store(Request $request)
     {
-        $data = $request->validate([
-            'title' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'job_type' => 'nullable|string|max:50',
-            'salary' => 'nullable|numeric',
-            'lat' => 'nullable|numeric',
-            'lng' => 'nullable|numeric',
-            'barangay' => 'nullable|string|max:255',
-            'municipality' => 'nullable|string|max:255',
+        $request->validate([
+            'title'       => 'required|string|max:255',
+            'description' => 'required|string',
+            'job_type'    => 'required|string|in:full-time,part-time,contract,freelance',
+            'salary'      => 'required|numeric|min:1',
+            'location_id' => 'required|string', // temporarily accept string like "Barangay, Municipality"
         ]);
 
-        $locationId = null;
-        if (isset($data['lat']) && isset($data['lng'])) {
-            $location = Location::create([
-                'lat' => $data['lat'],
-                'lng' => $data['lng'],
-                'barangay' => $data['barangay'] ?? null,
-                'municipality' => $data['municipality'] ?? null,
-            ]);
-            $locationId = $location->id;
+        // Parse location string: "Barangay, Municipality"
+        $locationParts = explode(',', $request->location_id);
+
+        if (count($locationParts) < 2) {
+            return response()->json([
+                'message' => 'Invalid location format. Must be "Barangay, Municipality".'
+            ], 422);
         }
 
+        $barangay = trim($locationParts[0]);
+        $municipality = trim($locationParts[1]);
+
+        // Find location by barangay + municipality
+        $location = Location::where('barangay', $barangay)
+            ->where('municipality', $municipality)
+            ->first();
+
+        if (!$location) {
+            return response()->json([
+                'message' => "Location not found: {$barangay}, {$municipality}"
+            ], 404);
+        }
+
+        // Create job post
         $job = JobPost::create([
-            'user_id' => $request->user()->id,
-            'location_id' => $locationId,
-            'title' => $data['title'],
-            'description' => $data['description'] ?? null,
-            'job_type' => $data['job_type'] ?? null,
-            'salary' => $data['salary'] ?? null,
+            'title'       => $request->title,
+            'description' => $request->description,
+            'job_type'    => $request->job_type,
+            'salary'      => $request->salary,
+            'location_id' => $location->id,
+            'user_id'     => $request->user()->id, // employer id
+            'status'      => 'open', // default
         ]);
 
-        return response()->json($job, 201);
+        return response()->json([
+            'message' => 'Job post created successfully',
+            'job'     => $job->load('location'),
+        ], 201);
+    }
+
+    // public function updateStatus(Request $request, $id)
+    // {
+    //     $validated = $request->validate([
+    //         'status' => 'required|string|in:open,paused,filled,closed',
+    //     ]);
+
+    //     $job = JobPost::findOrFail($id);
+
+    //     // Ensure employer owns the job
+    //     if ($job->user_id !== $request->user()->id) {
+    //         return response()->json(['message' => 'Unauthorized'], 403);
+    //     }
+
+    //     DB::transaction(function () use ($job, $validated) {
+    //         $job->status = $validated['status'];
+    //         $job->save();
+
+    //         // If job is marked as filled, reject all non-accepted applications
+    //         if ($validated['status'] === 'filled') {
+    //             $hiredApplicants = Application::where('job_post_id', $job->id)->where("status", "accepted");
+                
+    //             foreach($hiredApplicants as $app){
+    //                 NotificationService::storeNotification(
+    //                     $app->user_id,
+    //                     'application',
+    //                     'Congratulations! You'
+    //                 );
+    //             }
+                
+    //             Application::where('job_post_id', $job->id)
+    //                 ->where('status', 'pending')
+    //                 ->orWhere('status', 'withdrawn')
+    //                 ->update(['status' => 'rejected']);
+    //         } else if ($validated['status'] === 'closed') {
+    //             Application::where('job_post_id', $job->id)
+    //                 ->where('status', 'accepted')
+    //                 ->update(['status' => 'completed']);
+    //         }
+    //     });
+
+    //     return response()->json([
+    //         'message' => 'Job status updated successfully',
+    //         'job' => $job->load('applications'),
+    //     ]);
+    // }
+
+    public function updateStatus(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'status' => 'required|string|in:open,paused,filled,closed',
+        ]);
+
+        $job = JobPost::findOrFail($id);
+
+        // Ensure employer owns the job
+        if ($job->user_id !== $request->user()->id) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        DB::transaction(function () use ($job, $validated) {
+            $job->status = $validated['status'];
+            $job->save();
+
+            if ($validated['status'] === 'filled') {
+                $hiredApplicants = Application::where('job_post_id', $job->id)
+                    ->where('status', 'accepted')
+                    ->get();
+
+                foreach ($hiredApplicants as $app) {
+                    NotificationService::storeNotification(
+                        $app->user_id,
+                        'application',
+                        "🎉 Congratulations! You have been hired for the job '{$job->title}'."
+                    );
+                }
+
+                $rejectedApplicants = Application::where('job_post_id', $job->id)
+                    ->whereIn('status', ['pending', 'withdrawn'])
+                    ->get();
+
+                foreach ($rejectedApplicants as $app) {
+                    $app->update(['status' => 'rejected']);
+                    NotificationService::storeNotification(
+                        $app->user_id,
+                        'application',
+                        "Unfortunately, your application for '{$job->title}' was not selected."
+                    );
+                }
+            } 
+            else if ($validated['status'] === 'closed') {
+                $completedApplicants = Application::where('job_post_id', $job->id)
+                    ->where('status', 'accepted')
+                    ->get();
+
+                foreach ($completedApplicants as $app) {
+                    $app->update(['status' => 'completed']);
+                    NotificationService::storeNotification(
+                        $app->user_id,
+                        'application',
+                        "Your job '{$job->title}' has been marked as completed. Thank you for your work!"
+                    );
+                }
+            }
+        });
+
+        return response()->json([
+            'message' => 'Job status updated successfully',
+            'job' => $job->load('applications'),
+        ]);
     }
 
     public function show(JobPost $jobPost)

@@ -26,6 +26,17 @@ class NotificationController extends Controller
         return response()->json($notifications);
     }
 
+    public function count(Request $request){
+        $user = $request->user();
+
+        $count = Notification::where('user_id', $user->id)->where("is_read", 0)
+            ->orderBy('created_at', 'desc')
+            ->count();
+
+        return response()->json($count);
+
+    }
+
     public function store(Request $request)
     {
         $data = $request->validate([

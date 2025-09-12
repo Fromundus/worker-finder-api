@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Application;
+use App\Models\JobPost;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 
 class ApplicationController extends Controller
@@ -11,7 +13,7 @@ class ApplicationController extends Controller
     {
         $data = $request->validate([
             'job_post_id' => 'required|exists:job_posts,id',
-            'message' => 'nullable|string|max:2000',
+            'message'     => 'nullable|string|max:2000',
         ]);
 
         $exists = Application::where('job_post_id', $data['job_post_id'])
@@ -24,19 +26,20 @@ class ApplicationController extends Controller
 
         $application = Application::create([
             'job_post_id' => $data['job_post_id'],
-            'user_id' => $request->user()->id,
-            'message' => $data['message'] ?? null,
+            'user_id'     => $request->user()->id,
+            'message'     => $data['message'] ?? null,
         ]);
 
-        return response()->json($application, 201);
-    }
+        // 🔔 Notify the employer (job post owner)
+        $jobPost = JobPost::findOrFail($data['job_post_id']);
+        NotificationService::storeNotification(
+            $jobPost->user_id, // employer user_id
+            'application',
+            "{$request->user()->name} applied to your job post: {$jobPost->title}"
+        );
 
-    // public function myApplications(Request $request)
-    // {
-    //     return response()->json(
-    //         $request->user()->applications()->with('jobPost')->paginate(15)
-    //     );
-    // }
+        return response()->json($application->load('user', 'jobPost'), 201);
+    }
 
     public function myApplications(Request $request)
     {
@@ -53,24 +56,82 @@ class ApplicationController extends Controller
         return response()->json($applications);
     }
 
-
-    public function updateStatus(Request $request, Application $application)
+    public function employerApplications(Request $request)
     {
-        $data = $request->validate([
-            'status' => 'required|in:pending,accepted,rejected,withdrawn',
+        $user = $request->user();
+
+        $applications = Application::with(['user', 'jobPost.location'])
+            ->whereHas('jobPost', function ($q) use ($user) {
+                $q->where('user_id', $user->id);
+            })
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json($applications);
+    }
+
+    // public function updateStatus(Request $request, $id)
+    // {
+    //     $validated = $request->validate([
+    //         'status' => 'required|string|in:pending,accepted,rejected,withdrawn,completed',
+    //     ]);
+
+    //     $application = Application::findOrFail($id);
+
+    //     // Ensure employer owns the job
+    //     if ($application->jobPost->user_id !== $request->user()->id) {
+    //         return response()->json(['message' => 'Unauthorized'], 403);
+    //     }
+
+    //     $application->status = $validated['status'];
+    //     $application->save();
+
+    //     return response()->json([
+    //         'message' => 'Application updated successfully',
+    //         'application' => $application->load('user', 'jobPost'),
+    //     ]);
+    // }
+
+    public function updateStatus(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'status' => 'required|string|in:pending,accepted,rejected,withdrawn,completed',
         ]);
 
-        $job = $application->jobPost;
-        if ($request->user()->id !== $job->user_id && $request->user()->role !== 'admin') {
+        $application = Application::findOrFail($id);
+
+        // Ensure employer owns the job
+        if ($application->jobPost->user_id !== $request->user()->id) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $application->update(['status' => $data['status']]);
+        $application->status = $validated['status'];
+        $application->save();
 
-        if ($data['status'] === 'accepted') {
-            $job->update(['status' => 'filled']);
+        // 🔔 Notify the worker (applicant)
+        $workerId = $application->user_id;
+        $jobTitle = $application->jobPost->title;
+
+        $messages = [
+            'accepted'  => "Your application for {$jobTitle} was accepted.",
+            'rejected'  => "Your application for {$jobTitle} was rejected.",
+            'withdrawn' => "Your application for {$jobTitle} was withdrawn by the employer.",
+            'completed' => "Your application for {$jobTitle} was marked as completed.",
+            'pending'   => "Your application for {$jobTitle} is pending review.",
+        ];
+
+        if (isset($messages[$validated['status']])) {
+            NotificationService::storeNotification(
+                $workerId,
+                'application',
+                $messages[$validated['status']]
+            );
         }
 
-        return response()->json($application);
+        return response()->json([
+            'message' => 'Application updated successfully',
+            'application' => $application->load('user', 'jobPost'),
+        ]);
     }
+
 }

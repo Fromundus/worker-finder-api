@@ -2,40 +2,81 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Application;
 use App\Models\Feedback;
 use App\Models\User;
+use App\Services\NotificationService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class FeedbackController extends Controller
 {
-    public function store(Request $request)
+    public function store(Request $request, $applicationId)
     {
         $data = $request->validate([
-            'to_user_id' => 'required|exists:users,id',
-            'rating' => 'required|integer|min:1|max:5',
-            'comment' => 'nullable|string|max:2000',
+            'to_user_id'  => 'required|exists:users,id',
+            'rating'      => 'required|integer|min:1|max:5',
+            'comment'     => 'nullable|string|max:2000',
             'job_post_id' => 'nullable|exists:job_posts,id',
         ]);
 
+        // Prevent self-feedback
         if ($request->user()->id == $data['to_user_id']) {
             return response()->json(['message' => 'Cannot rate yourself'], 422);
         }
 
+        // Prevent duplicate feedback for the same job_post
+        $existing = Feedback::where('from_user_id', $request->user()->id)
+            ->where('to_user_id', $data['to_user_id'])
+            ->where('job_post_id', $data['job_post_id'])
+            ->first();
+
+        if ($existing) {
+            return response()->json(['message' => 'You already left feedback for this user on this job.'], 422);
+        }
+
+        // Create feedback
         $feedback = Feedback::create([
             'from_user_id' => $request->user()->id,
-            'to_user_id' => $data['to_user_id'],
-            'rating' => $data['rating'],
-            'comment' => $data['comment'] ?? null,
-            'job_post_id' => $data['job_post_id'] ?? null,
+            'to_user_id'   => $data['to_user_id'],
+            'rating'       => $data['rating'],
+            'comment'      => $data['comment'] ?? null,
+            'job_post_id'  => $data['job_post_id'] ?? null,
         ]);
 
-        // update average rating
+        // Update application rating flags
+        $application = Application::findOrFail($applicationId);
+        if ($application) {
+            if ($request->user()->role === "employer") {
+                $application->update([
+                    "workerIsRated" => Carbon::now(),
+                ]);
+            } else if ($request->user()->role === "worker") {
+                $application->update([
+                    "employerIsRated" => Carbon::now(),
+                ]);
+            }
+        }
+
+        // Update average rating of the user who got rated
         $toUser = User::findOrFail($data['to_user_id']);
         $avg = $toUser->feedbackReceived()->avg('rating') ?? 0;
         $toUser->update(['average_rating' => round($avg, 2)]);
 
-        return response()->json($feedback, 201);
+        // 🔔 Notify the rated user
+        NotificationService::storeNotification(
+            $data['to_user_id'],
+            'feedback',
+            "⭐ You received new feedback from {$request->user()->name} on job '{$application->jobPost->title}' with a rating of {$data['rating']}."
+        );
+
+        return response()->json([
+            'message'        => 'Feedback submitted successfully',
+            'feedback'       => $feedback,
+            'average_rating' => $toUser->average_rating,
+        ], 201);
     }
+
 
     public function indexForUser($userId)
     {

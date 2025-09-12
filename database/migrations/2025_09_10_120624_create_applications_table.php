@@ -15,9 +15,11 @@ return new class extends Migration
             $table->id();
             $table->foreignId('job_post_id')->constrained()->onDelete('cascade');
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
-            $table->enum('status', ['pending','accepted','rejected','withdrawn'])->default('pending');
+            $table->enum('status', ['pending','accepted','rejected','withdrawn', 'completed'])->default('pending');
             $table->text('message')->nullable();
             $table->unique(['job_post_id','user_id']);
+            $table->date("workerIsRated")->nullable();
+            $table->date("employerIsRated")->nullable();
             $table->timestamps();
         });
     }

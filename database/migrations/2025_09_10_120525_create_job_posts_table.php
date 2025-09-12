@@ -19,7 +19,7 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->string('job_type')->nullable(); // e.g., one-time, daily, part-time
             $table->decimal('salary', 12, 2)->nullable();
-            $table->enum('status', ['open','closed','filled'])->default('open');
+            $table->enum('status', ['open','paused','filled','closed'])->default('open');
             $table->timestamps();
         });
     }
