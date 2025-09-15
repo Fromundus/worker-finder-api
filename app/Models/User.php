@@ -31,7 +31,7 @@ class User extends Authenticatable
         'business_name',
         'lat',
         'lng',
-        'address',
+        'location_id'
     ];
 
     /**
@@ -56,6 +56,11 @@ class User extends Authenticatable
             'password' => 'hashed',
             'average_rating' => 'decimal:2',
         ];
+    }
+
+    public function location()
+    {
+        return $this->belongsTo(Location::class);
     }
 
     public function jobPosts()

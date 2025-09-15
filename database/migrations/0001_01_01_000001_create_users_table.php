@@ -23,14 +23,16 @@ return new class extends Migration
 
             $table->text("skills")->nullable();
             $table->text("experience")->nullable();
-            $table->decimal('average_rating', 3, 2)->default(value: 0.00);
+            $table->decimal('average_rating', 3, 2)->default(0.00);
 
             $table->string('business_name')->nullable();
 
             $table->string('lat')->nullable();
             $table->string('lng')->nullable();
-            $table->string('address')->nullable();
-            
+
+            $table->unsignedBigInteger('location_id')->nullable();
+            $table->foreign('location_id')->references('id')->on('locations')->onDelete('set null');
+
             $table->rememberToken();
             $table->timestamps();
         });

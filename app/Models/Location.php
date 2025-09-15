@@ -16,6 +16,12 @@ class Location extends Model
         'municipality',
     ];
 
+    public function users()
+    {
+        return $this->hasMany(User::class);
+    }
+
+
     public function jobPosts()
     {
         return $this->hasMany(JobPost::class);

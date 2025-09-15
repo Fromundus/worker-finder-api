@@ -37,45 +37,98 @@ class AuthController extends Controller
     //         'token' => $token
     //     ], 201);
     // }
+    // public function register(Request $request)
+    // {
+    //     $validated = $request->validate([
+    //         'name' => 'required|string|max:255',
+    //         'contact_number' => 'nullable|string|max:20',
+    //         'email' => 'required|email|unique:users,email',
+    //         'password' => 'required|string|min:6|confirmed',
+    //         'role' => 'required|in:worker,employer',
+    //         'skills' => 'nullable|string',
+    //         'experience' => 'nullable|string',
+    //         'business_name' => 'nullable|string',
+    //         'lat' => 'nullable|string',
+    //         'lng' => 'nullable|string',
+    //         'address' => 'nullable|string',
+    //     ]);
+
+    //     $user = User::create([
+    //         'name' => $validated['name'],
+    //         'contact_number' => $validated['contact_number'] ?? null,
+    //         'email' => $validated['email'],
+    //         'password' => bcrypt($validated['password']),
+    //         'role' => $validated['role'],
+    //         'skills' => $validated['skills'] ?? null,
+    //         'experience' => $validated['experience'] ?? null,
+    //         'business_name' => $validated['business_name'] ?? null,
+    //         'lat' => $validated['lat'] ?? null,
+    //         'lng' => $validated['lng'] ?? null,
+    //         'address' => $validated['address'] ?? null,
+    //     ]);
+
+    //     $token = $user->createToken('api_token')->plainTextToken;
+
+    //     return response()->json([
+    //         'message' => 'User registered successfully',
+    //         'user' => $user,
+    //         'access_token' => $token,
+    //     ], 201);
+    // }
+
     public function register(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
+            'name'           => 'required|string|max:255',
             'contact_number' => 'nullable|string|max:20',
-            'email' => 'required|email|unique:users,email',
-            'password' => 'required|string|min:6|confirmed',
-            'role' => 'required|in:worker,employer',
-            'skills' => 'nullable|string',
-            'experience' => 'nullable|string',
-            'business_name' => 'nullable|string',
-            'lat' => 'nullable|string',
-            'lng' => 'nullable|string',
-            'address' => 'nullable|string',
+            'email'          => 'required|email|unique:users,email',
+            'password'       => 'required|string|min:6|confirmed',
+            'role'           => 'required|in:worker,employer',
+            'skills'         => 'nullable|string',
+            'experience'     => 'nullable|string',
+            'business_name'  => 'nullable|string',
+            'lat'            => 'nullable|string',
+            'lng'            => 'nullable|string',
+            'location'       => 'nullable|string', // example: "Marinawa, Bato"
         ]);
 
+        $locationId = null;
+
+        if (!empty($validated['location'])) {
+            // Split barangay, municipality
+            [$barangay, $municipality] = array_map('trim', explode(',', $validated['location']));
+
+            $location = \App\Models\Location::where('barangay', 'like', $barangay)
+                ->where('municipality', 'like', $municipality)
+                ->first();
+
+            if ($location) {
+                $locationId = $location->id;
+            }
+        }
+
         $user = User::create([
-            'name' => $validated['name'],
+            'name'           => $validated['name'],
             'contact_number' => $validated['contact_number'] ?? null,
-            'email' => $validated['email'],
-            'password' => bcrypt($validated['password']),
-            'role' => $validated['role'],
-            'skills' => $validated['skills'] ?? null,
-            'experience' => $validated['experience'] ?? null,
-            'business_name' => $validated['business_name'] ?? null,
-            'lat' => $validated['lat'] ?? null,
-            'lng' => $validated['lng'] ?? null,
-            'address' => $validated['address'] ?? null,
+            'email'          => $validated['email'],
+            'password'       => bcrypt($validated['password']),
+            'role'           => $validated['role'],
+            'skills'         => $validated['skills'] ?? null,
+            'experience'     => $validated['experience'] ?? null,
+            'business_name'  => $validated['business_name'] ?? null,
+            'lat'            => $validated['lat'] ?? null,
+            'lng'            => $validated['lng'] ?? null,
+            'location_id'    => $locationId,
         ]);
 
         $token = $user->createToken('api_token')->plainTextToken;
 
         return response()->json([
-            'message' => 'User registered successfully',
-            'user' => $user,
+            'message'      => 'User registered successfully',
+            'user'         => $user->load('location'),
             'access_token' => $token,
         ], 201);
     }
-
 
     public function login(Request $request)
     {
@@ -107,9 +160,16 @@ class AuthController extends Controller
         ]);
     }
 
+    // public function me(Request $request)
+    // {
+    //     return response()->json($request->user());
+    // }
+
     public function me(Request $request)
     {
-        return response()->json($request->user());
+        $user = $request->user()->load('location');
+
+        return response()->json($user);
     }
 
     public function logout(Request $request)

@@ -6,6 +6,7 @@ use App\Http\Controllers\ApplicationController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\JobPostController;
+use App\Http\Controllers\LocationController;
 use App\Http\Controllers\NotificationController;
 use Illuminate\Support\Facades\Route;
 
@@ -57,6 +58,10 @@ Route::middleware(['auth:sanctum', 'active'])->group(function(){
     Route::get('job-posts', [JobPostController::class, 'index']);
     Route::get('job-posts-employer', [JobPostController::class, 'indexEmployer']);
     Route::get('job-posts/{jobPost}', [JobPostController::class, 'show']);
+
+    //MAP
+    Route::get('/map/jobs', [LocationController::class, 'jobsNearby']);
+    Route::get('/map/workers', [LocationController::class, 'workersNearby']);
 
     //USER ACCOUNTS
     Route::put('/updateuser/{id}', [UserController::class, 'update']);

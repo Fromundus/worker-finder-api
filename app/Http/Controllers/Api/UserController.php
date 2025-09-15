@@ -226,18 +226,58 @@ class UserController extends Controller
         ]);
     }
 
+    // public function update(Request $request)
+    // {
+    //     $user = $request->user();
+
+    //     $rules = [
+    //         'name' => 'required|string|max:255',
+    //         'contact_number' => 'nullable|string|max:20',
+    //         'email' => 'nullable|email|unique:users,email,' . $user->id,
+    //         'password' => 'nullable|min:6|confirmed',
+    //         'address' => 'nullable|string',
+    //         'lat' => 'nullable|string',
+    //         'lng' => 'nullable|string',
+    //     ];
+
+    //     if ($user->role === 'worker') {
+    //         $rules['skills'] = 'nullable|string';
+    //         $rules['experience'] = 'nullable|string';
+    //     }
+
+    //     if ($user->role === 'employer') {
+    //         $rules['business_name'] = 'nullable|string|max:255';
+    //     }
+
+    //     $validated = $request->validate($rules);
+
+    //     if ($request->filled('password')) {
+    //         $validated['password'] = bcrypt($request->password);
+    //     } else {
+    //         unset($validated['password']);
+    //     }
+
+    //     $user->update($validated);
+
+    //     return response()->json([
+    //         'message' => 'Profile updated successfully',
+    //         'user' => $user,
+    //     ]);
+    // }
+
     public function update(Request $request)
     {
         $user = $request->user();
 
         $rules = [
-            'name' => 'required|string|max:255',
+            'name'           => 'required|string|max:255',
             'contact_number' => 'nullable|string|max:20',
-            'email' => 'nullable|email|unique:users,email,' . $user->id,
-            'password' => 'nullable|min:6|confirmed',
-            'address' => 'nullable|string',
-            'lat' => 'nullable|string',
-            'lng' => 'nullable|string',
+            'email'          => 'nullable|email|unique:users,email,' . $user->id,
+            'password'       => 'nullable|min:6|confirmed',
+
+            'location_id'    => 'nullable|exists:locations,id', // NEW
+            'lat'            => 'nullable|string',
+            'lng'            => 'nullable|string',
         ];
 
         if ($user->role === 'worker') {
@@ -261,8 +301,7 @@ class UserController extends Controller
 
         return response()->json([
             'message' => 'Profile updated successfully',
-            'user' => $user,
+            'user'    => $user->load('location'), // include relationship if needed
         ]);
     }
-
 }

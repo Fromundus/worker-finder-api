@@ -12,14 +12,29 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('job_posts', function (Blueprint $table) {
+            // $table->id();
+            // $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+            // $table->foreignId('location_id')->nullable()->constrained('locations')->nullOnDelete();
+            // $table->string('title');
+            // $table->text('description')->nullable();
+            // $table->string('job_type')->nullable(); // e.g., one-time, daily, part-time
+            // $table->decimal('salary', 12, 2)->nullable();
+            // $table->enum('status', ['open','paused','filled','closed'])->default('open');
+            // $table->timestamps();
+
             $table->id();
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
-            $table->foreignId('location_id')->nullable()->constrained('locations')->nullOnDelete();
+            $table->foreignId('location_id')->constrained('locations')->onDelete('cascade'); 
+
             $table->string('title');
             $table->text('description')->nullable();
             $table->string('job_type')->nullable(); // e.g., one-time, daily, part-time
             $table->decimal('salary', 12, 2)->nullable();
             $table->enum('status', ['open','paused','filled','closed'])->default('open');
+
+            $table->decimal('lat', 10, 7)->nullable();
+            $table->decimal('lng', 10, 7)->nullable();
+
             $table->timestamps();
         });
     }
