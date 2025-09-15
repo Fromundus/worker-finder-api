@@ -15,6 +15,7 @@ class Feedback extends Model
         'rating',
         'comment',
         'job_post_id',
+        'booking_id',
     ];
 
     public function fromUser()
@@ -30,5 +31,10 @@ class Feedback extends Model
     public function jobPost()
     {
         return $this->belongsTo(JobPost::class);
+    }
+
+    public function booking()
+    {
+        return $this->belongsTo(Booking::class);
     }
 }

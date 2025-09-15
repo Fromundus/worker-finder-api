@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\ApplicationController;
+use App\Http\Controllers\BookingController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\JobPostController;
@@ -48,6 +49,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function(){
     Route::get('feedbacks', [FeedbackController::class, 'index']);
 
     Route::post('/feedbacks/{id}', [FeedbackController::class, 'store']);
+    Route::post('/feedbacks/bookings/{id}', [FeedbackController::class, 'storeBooking']);
 
     Route::get('notifications', [NotificationController::class, 'index']);
     Route::get('notifications-count', [NotificationController::class, 'count']);
@@ -62,6 +64,11 @@ Route::middleware(['auth:sanctum', 'active'])->group(function(){
     //MAP
     Route::get('/map/jobs', [LocationController::class, 'jobsNearby']);
     Route::get('/map/workers', [LocationController::class, 'workersNearby']);
+
+    //BOOKING
+    Route::get('/my-bookings', [BookingController::class, 'index']);
+    Route::post('/bookings', [BookingController::class, 'store']);
+    Route::put('/bookings/{id}', [BookingController::class, 'updateStatus']);
 
     //USER ACCOUNTS
     Route::put('/updateuser/{id}', [UserController::class, 'update']);

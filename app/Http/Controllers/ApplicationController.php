@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Application;
+use App\Models\Booking;
 use App\Models\JobPost;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
@@ -20,8 +21,14 @@ class ApplicationController extends Controller
             ->where('user_id', $request->user()->id)
             ->exists();
 
+        $alreadyBooked = Booking::where("worker_id", $request->user()->id)->where("status", 'active')->exists();
+
         if ($exists) {
             return response()->json(['message' => 'Already applied'], 422);
+        }
+
+        if ($alreadyBooked) {
+            return response()->json(['message' => 'Application is not allowed when you have an active booking.'], 422);
         }
 
         $application = Application::create([

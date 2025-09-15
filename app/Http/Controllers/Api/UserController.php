@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Application;
+use App\Models\Booking;
 use App\Models\Feedback;
+use App\Models\JobPost;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -197,9 +199,13 @@ class UserController extends Controller
         $user = $request->user();
 
         // Completed jobs (if worker → jobs they've done; if employer → jobs they've posted & filled)
-        $completedJobs = Application::where('user_id', $user->id)
+        $completedApp = Application::where('user_id', $user->id)
             ->where('status', 'completed')
             ->count();
+
+        $completedBook = Booking::where('worker_id', $user->id)->where("status", "completed")->count();
+
+        $completedJobs = $completedApp + $completedBook;
 
         $totalApplications = Application::where('user_id', $user->id)->count();
 
@@ -208,7 +214,17 @@ class UserController extends Controller
         //     ->orderBy('created_at', 'desc')
         //     ->get();
 
-        $feedback = Feedback::with(['fromUser', 'toUser', 'jobPost'])
+        $totalJobPosts = JobPost::where("user_id", $user->id)->count();
+
+        $totalBookings = 0;
+
+        if($user->role === "employer"){
+            $totalBookings = Booking::where("employer_id", $user->id)->count();
+        } else if ($user->role === "worker"){
+            $totalBookings = Booking::where("worker_id", $user->id)->count();
+        }
+
+        $feedback = Feedback::with(['fromUser', 'toUser', 'jobPost', 'booking'])
         ->where('to_user_id', $user->id) // feedback received by logged-in user
         ->orderBy('created_at', 'desc')
         ->get();
@@ -223,6 +239,8 @@ class UserController extends Controller
             'totalApplications' => $totalApplications,
             'feedback' => $feedback,
             'averageRating' =>  $averageRating,
+            'totalJobPosts' => $totalJobPosts,
+            'totalBookings' => $totalBookings,
         ]);
     }
 

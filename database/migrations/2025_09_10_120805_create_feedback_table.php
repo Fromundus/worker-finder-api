@@ -18,6 +18,7 @@ return new class extends Migration
             $table->unsignedTinyInteger('rating'); // 1-5
             $table->text('comment')->nullable();
             $table->foreignId('job_post_id')->nullable()->constrained('job_posts')->nullOnDelete();
+            $table->foreignId('booking_id')->nullable()->constrained('bookings')->nullOnDelete();
             $table->timestamps();
         });
     }
