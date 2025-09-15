@@ -36,7 +36,7 @@ class JobPostController extends Controller
         $jobs = JobPost::with([
             'location',
             'applications' => function ($q) {
-                $q->where('status', 'accepted')->orWhere('status', 'completed')->with('user');
+                $q->where('status', 'accepted')->orWhere('status', 'active')->orWhere('status', 'completed')->with('user');
             }
         ])
         ->withCount('applications')
@@ -159,9 +159,21 @@ class JobPostController extends Controller
                 $hiredApplicants = Application::where('job_post_id', $job->id)
                     ->where('status', 'accepted')
                     ->get();
+                
+                    
+                    foreach ($hiredApplicants as $app) {
+                        $app->update(['status' => 'active']);
 
-                foreach ($hiredApplicants as $app) {
-                    NotificationService::storeNotification(
+                        $hiredApplicantsPendingApplications = Application::where('job_post_id', '!=', $job->id)
+                            ->where('status', 'pending')
+                            ->where('user_id', $app->user_id)
+                            ->get();
+                        
+                        foreach($hiredApplicantsPendingApplications as $pending){
+                            $pending->delete();
+                        }
+
+                        NotificationService::storeNotification(
                         $app->user_id,
                         'application',
                         "🎉 Congratulations! You have been hired for the job '{$job->title}'."
@@ -183,7 +195,7 @@ class JobPostController extends Controller
             } 
             else if ($validated['status'] === 'closed') {
                 $completedApplicants = Application::where('job_post_id', $job->id)
-                    ->where('status', 'accepted')
+                    ->where('status', 'active')
                     ->get();
 
                 foreach ($completedApplicants as $app) {
