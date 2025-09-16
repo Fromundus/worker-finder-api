@@ -23,7 +23,7 @@ class JobPostFactory extends Factory
             'location_id' => Location::factory(),
             'title' => $this->faker->jobTitle(),
             'description' => $this->faker->paragraph(),
-            'job_type' => $this->faker->randomElement(['one-time','daily','part-time']),
+            'job_type' => $this->faker->randomElement(['one-time','full-time','part-time']),
             'salary' => $this->faker->numberBetween(200, 2000),
             'status' => 'open',
         ];

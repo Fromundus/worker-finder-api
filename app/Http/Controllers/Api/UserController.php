@@ -47,11 +47,10 @@ class UserController extends Controller
             }
         }
 
-        $users = $query->orderBy('id', 'desc')->paginate($perPage);
+        $users = $query->where("role", '!=', "admin")->orderBy('id', 'desc')->paginate($perPage);
 
         $roleCounts = [
             'total'      => User::count(),
-            'admin'      => User::where('role', 'admin')->count(),
             'worker'       => User::where('role', 'worker')->count(),
             'employer'       => User::where('role', 'employer')->count(),
         ];
