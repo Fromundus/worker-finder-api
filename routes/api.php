@@ -26,12 +26,16 @@ Route::middleware(['auth:sanctum', 'active'])->group(function(){
             Route::delete('/', [UserController::class, 'delete']);
         });
 
+        Route::put('/update-status', [UserController::class, 'updateStatus']);
+
     });
 
     Route::get('/dashboard/worker', [DashboardController::class, 'workerOverview']);
     Route::get('/dashboard/employer', [DashboardController::class, 'employerOverview']);
+    Route::get('/dashboard/admin', [DashboardController::class, 'adminOverview']);
 
     Route::get('/profile', [UserController::class, 'show']);
+    Route::get('/user-profile/{id}', [UserController::class, 'showUserProfile']);
     Route::put('/profile', [UserController::class, 'update']);
     
     Route::post('job-posts', [JobPostController::class, 'store']);

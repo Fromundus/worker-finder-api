@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Application;
+use App\Models\Booking;
 use App\Models\Feedback;
 use App\Models\JobPost;
 use App\Models\Notification;
+use App\Models\User;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
@@ -117,5 +119,35 @@ class DashboardController extends Controller
         ]);
     }
 
+    public function adminOverview(Request $request)
+    {
+        $totalUsers        = User::count();
+        $totalWorkers      = User::where('role', 'worker')->count();
+        $totalEmployers    = User::where('role', 'employer')->count();
+        $totalApplications = Application::count();
+        $totalBookings     = Booking::count(); // assuming you have a Booking model
+        $totalJobs         = JobPost::count();
+        $openJobs          = JobPost::where('status', 'open')->count();
 
+        $averageRating     = round(Feedback::avg('rating') ?? 0, 1);
+
+        // Recent activity
+        $recentUsers = User::latest()->take(5)->get();
+        $recentApplications = Application::with('user', 'jobPost')->latest()->take(5)->get();
+        $recentJobPosts = JobPost::with('user')->latest()->take(5)->get();
+
+        return response()->json([
+            'total_users'         => $totalUsers,
+            'total_workers'       => $totalWorkers,
+            'total_employers'     => $totalEmployers,
+            'total_applications'  => $totalApplications,
+            'total_bookings'      => $totalBookings,
+            'total_jobs'          => $totalJobs,
+            'open_jobs'           => $openJobs,
+            'average_rating'      => $averageRating,
+            'recent_users'        => $recentUsers,
+            'recent_applications' => $recentApplications,
+            'recent_job_posts'    => $recentJobPosts,
+        ]);
+    }
 }

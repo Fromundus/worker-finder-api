@@ -146,9 +146,15 @@ class AuthController extends Controller
         }
 
         if($user && $user->status !== "active"){
-            throw ValidationException::withMessages([
-                'name' => ['Inactive Account.'],
-            ]);
+            if($user->status === "pending"){
+                throw ValidationException::withMessages([
+                    'name' => ['We are reviewing your account. Please try again later.'],
+                ]);
+            } else {
+                throw ValidationException::withMessages([
+                    'name' => ['Inactive Account.'],
+                ]);
+            }
         }
 
         $token = $user->createToken('api_token')->plainTextToken;

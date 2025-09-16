@@ -27,9 +27,8 @@ class UserController extends Controller
 
         if ($search) {
             $query->where(function ($q) use ($search) {
-                $q->where('username', 'like', "%{$search}%")
-                ->orWhere('name', 'like', "%{$search}%")
-                ->orWhere('role', 'like', "%{$search}%")
+                $q->where('name', 'like', "%{$search}%")
+                ->orWhere('contact_number', 'like', "%{$search}%")
                 ->orWhere('email', 'like', "%{$search}%");
             });
         }
@@ -41,18 +40,20 @@ class UserController extends Controller
         if ($status && $status !== 'all') {
             if ($status === 'active') {
                 $query->where('status', 'active');
-            } elseif ($status === 'inactive') {
-                $query->where('status', 'inactive')->orWhereNull('status');
+            } else if ($status === 'pending') {
+                $query->where('status', operator: 'pending')->orWhereNull('status');
+            } else if ($status === 'inactive') {
+                $query->where('status', 'inactive');
             }
         }
 
-        $users = $query->where("role", "bns")->orderBy('id', 'desc')->paginate($perPage);
+        $users = $query->orderBy('id', 'desc')->paginate($perPage);
 
         $roleCounts = [
             'total'      => User::count(),
-            'superadmin' => User::where('role', 'superadmin')->count(),
             'admin'      => User::where('role', 'admin')->count(),
-            'driver'       => User::where('role', 'driver')->count(),
+            'worker'       => User::where('role', 'worker')->count(),
+            'employer'       => User::where('role', 'employer')->count(),
         ];
 
         return response()->json([
@@ -116,10 +117,6 @@ class UserController extends Controller
             ->update(['status' => $validated['status']]);
 
         $users = User::whereIn('id', $validated['ids'])->get();
-
-        // foreach($users as $user){            
-        //     ActivityLogger::log('update', 'account', "Updated account: #" . $user->id . " " . $user->name . " (changed role to " . $request->role . ")");
-        // }
 
         return response()->json(['message' => 'Status updated successfully']);
     }
@@ -197,6 +194,56 @@ class UserController extends Controller
     public function show(Request $request)
     {
         $user = $request->user();
+
+        // Completed jobs (if worker → jobs they've done; if employer → jobs they've posted & filled)
+        $completedApp = Application::where('user_id', $user->id)
+            ->where('status', 'completed')
+            ->count();
+
+        $completedBook = Booking::where('worker_id', $user->id)->where("status", "completed")->count();
+
+        $completedJobs = $completedApp + $completedBook;
+
+        $totalApplications = Application::where('user_id', $user->id)->count();
+
+        // $feedback = Feedback::with('fromUser')
+        //     ->where('to_user_id', $user->id)
+        //     ->orderBy('created_at', 'desc')
+        //     ->get();
+
+        $totalJobPosts = JobPost::where("user_id", $user->id)->count();
+
+        $totalBookings = 0;
+
+        if($user->role === "employer"){
+            $totalBookings = Booking::where("employer_id", $user->id)->count();
+        } else if ($user->role === "worker"){
+            $totalBookings = Booking::where("worker_id", $user->id)->count();
+        }
+
+        $feedback = Feedback::with(['fromUser', 'toUser', 'jobPost', 'booking'])
+        ->where('to_user_id', $user->id) // feedback received by logged-in user
+        ->orderBy('created_at', 'desc')
+        ->get();
+
+        $averageRating= round($feedback->avg('rating'), 2);
+
+        $ratingCounts = $feedback->groupBy('rating')->map->count();
+
+        return response()->json([
+            'user' => $user,
+            'completedJobs' => $completedJobs,
+            'totalApplications' => $totalApplications,
+            'feedback' => $feedback,
+            'averageRating' =>  $averageRating,
+            'totalJobPosts' => $totalJobPosts,
+            'totalBookings' => $totalBookings,
+        ]);
+    }
+
+    public function showUserProfile(Request $request, $id)
+    {
+        $user = User::findOrFail($id);
 
         // Completed jobs (if worker → jobs they've done; if employer → jobs they've posted & filled)
         $completedApp = Application::where('user_id', $user->id)

@@ -30,10 +30,12 @@ class LocationController extends Controller
                     * sin(radians(locations.lat)))) AS distance")
             )
             ->join('locations', 'locations.id', '=', 'job_posts.location_id')
+            ->join('users', 'users.id', '=', 'job_posts.user_id')
             ->where('job_posts.status', 'open')
             ->having('distance', '<=', $radius)
             ->orderBy('distance', 'asc')
             ->with('user', 'location:id,barangay,municipality,lat,lng')
+            ->where('users.status', 'active')
             ->get();
 
         return response()->json($jobs);
@@ -63,6 +65,7 @@ class LocationController extends Controller
             )
             ->join('locations', 'locations.id', '=', 'users.location_id')
             ->where('users.role', 'worker')
+            ->where('users.status', 'active')
             ->having('distance', '<=', $radius)
             ->orderBy('distance', 'asc')
             ->get();
