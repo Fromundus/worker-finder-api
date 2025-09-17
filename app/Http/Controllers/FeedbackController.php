@@ -78,6 +78,33 @@ class FeedbackController extends Controller
         ], 201);
     }
 
+    public function storeSystem(Request $request)
+    {
+        $data = $request->validate([
+            'rating'      => 'required|integer|min:1|max:5',
+            'comment'     => 'nullable|string|max:2000',
+        ]);
+
+        // Create feedback
+        $feedback = Feedback::create([
+            'from_user_id' => $request->user()->id,
+            'rating'       => $data['rating'],
+            'comment'      => $data['comment'] ?? null,
+        ]);
+
+        // 🔔 Notify the rated user
+        // NotificationService::storeNotification(
+        //     $data['to_user_id'],
+        //     'feedback',
+        //     "⭐ You received new feedback from {$request->user()->name} on job '{$application->jobPost->title}' with a rating of {$data['rating']}."
+        // );
+
+        return response()->json([
+            'message'        => 'Feedback submitted successfully',
+            'feedback'       => $feedback,
+        ], 201);
+    }
+
     public function storeBooking(Request $request, $bookingId)
     {
         $data = $request->validate([
@@ -156,22 +183,42 @@ class FeedbackController extends Controller
     {
         $user = $request->user();
 
-        // If worker → feedback given to them
-        // If employer → feedback they gave to workers (or received from workers, depending on spec)
-        $feedback = Feedback::with(['fromUser', 'toUser', 'jobPost', 'booking'])
-            ->where('to_user_id', $user->id) // feedback received by logged-in user
-            ->orderBy('created_at', 'desc')
-            ->get();
+        if($user->role === "worker" || $user->role === "employer"){
+            // If worker → feedback given to them
+            // If employer → feedback they gave to workers (or received from workers, depending on spec)
+            $feedback = Feedback::with(['fromUser', 'toUser', 'jobPost', 'booking'])
+                ->where('to_user_id', $user->id) // feedback received by logged-in user
+                ->orderBy('created_at', 'desc')
+                ->get();
+    
+            $averageRating = round($feedback->avg('rating'), 2);
+    
+            $ratingCounts = $feedback->groupBy('rating')->map->count();
+    
+            return response()->json([
+                'feedback' => $feedback,
+                'averageRating' => $averageRating,
+                'ratingCounts' => $ratingCounts,
+            ]);
+        } else if ($user->role === "admin"){
+            // If worker → feedback given to them
+            // If employer → feedback they gave to workers (or received from workers, depending on spec)
+            $feedback = Feedback::with(['fromUser'])
+                ->where('to_user_id', null) // feedback received by logged-in user
+                ->orderBy('created_at', 'desc')
+                ->get();
+    
+            $averageRating = round($feedback->avg('rating'), 2);
+    
+            $ratingCounts = $feedback->groupBy('rating')->map->count();
+    
+            return response()->json([
+                'feedback' => $feedback,
+                'averageRating' => $averageRating,
+                'ratingCounts' => $ratingCounts,
+            ]);
+        }
 
-        $averageRating = round($feedback->avg('rating'), 2);
-
-        $ratingCounts = $feedback->groupBy('rating')->map->count();
-
-        return response()->json([
-            'feedback' => $feedback,
-            'averageRating' => $averageRating,
-            'ratingCounts' => $ratingCounts,
-        ]);
     }
 
 }

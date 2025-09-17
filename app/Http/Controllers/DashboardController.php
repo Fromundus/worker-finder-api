@@ -129,7 +129,9 @@ class DashboardController extends Controller
         $totalJobs         = JobPost::count();
         $openJobs          = JobPost::where('status', 'open')->count();
 
-        $averageRating     = round(Feedback::avg('rating') ?? 0, 1);
+        $feedbacks = Feedback::where("to_user_id", null)->get();
+
+        $averageRating     = round($feedbacks->avg('rating') ?? 0, 1);
 
         // Recent activity
         $recentUsers = User::latest()->take(5)->get();

@@ -55,6 +55,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function(){
     Route::get('feedbacks', [FeedbackController::class, 'index']);
 
     Route::post('/feedbacks/{id}', [FeedbackController::class, 'store']);
+    Route::post('/system/feedbacks', [FeedbackController::class, 'storeSystem']);
     Route::post('/feedbacks/bookings/{id}', [FeedbackController::class, 'storeBooking']);
 
     Route::get('notifications', [NotificationController::class, 'index']);
