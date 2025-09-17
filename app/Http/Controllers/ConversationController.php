@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Conversation;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class ConversationController extends Controller
@@ -46,7 +47,7 @@ class ConversationController extends Controller
             $conversation = Conversation::create([
                 'user_one_id' => $user->id,
                 'user_two_id' => $otherUserId,
-                'last_message_at' => now(),
+                'last_message_at' => Carbon::now(),
             ]);
         }
 

@@ -5,10 +5,10 @@ use Illuminate\Support\Facades\Broadcast;
 
 Broadcast::channel('conversation.{conversationId}', function ($user, $conversationId) {
 
-    \Log::info('Broadcast auth attempt', [
-        'user' => $user->id ?? null,
-        'conversationId' => $conversationId,
-    ]);
+    // \Log::info('Broadcast auth attempt', [
+    //     'user' => $user->id ?? null,
+    //     'conversationId' => $conversationId,
+    // ]);
     
     $conversation = Conversation::find($conversationId);
 
@@ -17,4 +17,14 @@ Broadcast::channel('conversation.{conversationId}', function ($user, $conversati
     }
 
     return $conversation->hasParticipant($user->id);
+});
+
+
+Broadcast::channel('users.{userId}', function ($user, $userId) {
+    \Log::info('Broadcast auth attempt', [
+        'user' => $user->id ?? null,
+        'userId' => $userId,
+    ]);
+
+    return (int) $user->id === (int) $userId; // only allow the owner
 });

@@ -2,6 +2,7 @@
 
 namespace App\Events;
 
+use App\Models\Conversation;
 use App\Models\Message;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
@@ -20,7 +21,22 @@ class MessageSent implements ShouldBroadcastNow
 
     public function broadcastOn()
     {
-        return new PrivateChannel('conversation.' . $this->message->conversation_id);
+        $senderId = $this->message->sender_id;
+
+        $convo = Conversation::where("id", $this->message->conversation_id)->first();
+
+        $receiverId = null;
+
+        if($convo->user_one_id === $senderId){
+            $receiverId = $convo->user_two_id;
+        } else if ($convo->user_two_id === $senderId){
+            $receiverId = $convo->user_one_id;
+        }
+
+        return [
+            new PrivateChannel('conversation.' . $this->message->conversation_id),
+            new PrivateChannel('users.' . $receiverId), // make sure to put here the owner of the account, or the one who receives the messages
+        ];
     }
 
     public function broadcastWith()
