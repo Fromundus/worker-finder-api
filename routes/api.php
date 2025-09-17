@@ -4,10 +4,12 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\ApplicationController;
 use App\Http\Controllers\BookingController;
+use App\Http\Controllers\ConversationController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\JobPostController;
 use App\Http\Controllers\LocationController;
+use App\Http\Controllers\MessageController;
 use App\Http\Controllers\NotificationController;
 use Illuminate\Support\Facades\Route;
 
@@ -73,6 +75,15 @@ Route::middleware(['auth:sanctum', 'active'])->group(function(){
     Route::get('/my-bookings', [BookingController::class, 'index']);
     Route::post('/bookings', [BookingController::class, 'store']);
     Route::put('/bookings/{id}', [BookingController::class, 'updateStatus']);
+
+    // Conversations
+    Route::get('/conversations', [ConversationController::class, 'index']);
+    Route::post('/conversations/start', [ConversationController::class, 'start']);
+    Route::get('/conversations/{conversation}', [ConversationController::class, 'show']);
+
+    // Messages
+    Route::get('/conversations/{conversation}/messages', [MessageController::class, 'index']);
+    Route::post('/conversations/{conversation}/messages', [MessageController::class, 'store']);
 
     //USER ACCOUNTS
     Route::put('/updateuser/{id}', [UserController::class, 'update']);
