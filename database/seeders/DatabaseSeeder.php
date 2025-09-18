@@ -32,41 +32,66 @@ class DatabaseSeeder extends Seeder
         ]);
 
         // 3. Employers & Workers
-        $employers = User::factory(10)->create(['role' => 'employer']);
-        $workers = User::factory(30)->create(['role' => 'worker']);
+        $workers = User::factory(50)->create(['role' => 'worker']);
+        $employers = User::factory(50)->create(['role' => 'employer']);
 
         // 4. Job posts linked to real barangays
         $locations = Location::all();
-        $jobPosts = JobPost::factory(20)->create([
-            'user_id' => $employers->random()->id,
-            'location_id' => $locations->random()->id,
-        ]);
+
+        // foreach($employers as $employer){
+        //     $location = $locations->random();
+
+        //     JobPost::factory(20)->create([
+        //         'user_id' => $employer->id,
+        //         'location_id' => $location->id,
+        //         'lat' => $location->lat,
+        //         'lng' => $location->lng,
+        //     ]);
+        // }
+        
+        foreach ($employers as $employer) {
+            JobPost::factory(5)->create([
+                'user_id' => $employer->id,
+            ])->each(function ($job) use ($locations) {
+                $location = $locations->random();
+                $job->update([
+                    'location_id' => $location->id,
+                    'lat' => $location->lat,
+                    'lng' => $location->lng,
+                ]);
+            });
+        }
+
+        // $jobPosts = JobPost::factory(20)->create([
+        //     'user_id' => $employers->random()->id,
+        //     'location_id' => $locations->random()->id,
+        // ]);
 
         // 5. Applications
-        foreach ($jobPosts as $job) {
-            // pick unique workers for this job
-            $applicants = $workers->random(rand(1,3));
+        // foreach ($jobPosts as $job) {
+        //     // pick unique workers for this job
+        //     $applicants = $workers->random(rand(1,3));
 
-            foreach ($applicants as $worker) {
-                Application::factory()->create([
-                    'job_post_id' => $job->id,
-                    'user_id' => $worker->id,
-                ]);
-            }
-        }
+        //     foreach ($applicants as $worker) {
+        //         Application::factory()->create([
+        //             'job_post_id' => $job->id,
+        //             'user_id' => $worker->id,
+        //         ]);
+        //     }
+        // }
 
         // 6. Feedback
-        foreach ($jobPosts as $job) {
-            Feedback::factory()->create([
-                'from_user_id' => $workers->random()->id,
-                'to_user_id' => $job->user_id,
-                'job_post_id' => $job->id,
-            ]);
-        }
+        // foreach ($jobPosts as $job) {
+        //     Feedback::factory()->create([
+        //         'from_user_id' => $workers->random()->id,
+        //         'to_user_id' => $job->user_id,
+        //         'job_post_id' => $job->id,
+        //     ]);
+        // }
 
         // 7. Notifications
-        Notification::factory(20)->create([
-            'user_id' => $workers->random()->id,
-        ]);
+        // Notification::factory(20)->create([
+        //     'user_id' => $workers->random()->id,
+        // ]);
     }
 }

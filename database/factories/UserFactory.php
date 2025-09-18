@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\Location;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -25,6 +26,10 @@ class UserFactory extends Factory
     {
         $role = $this->faker->randomElement(['worker','employer']);
 
+        $locations = Location::all();
+
+        $location = $locations->random();
+
         return [
             'name' => $this->faker->name(),
             'contact_number' => $this->faker->phoneNumber(),
@@ -38,6 +43,9 @@ class UserFactory extends Factory
             'average_rating' => 0,
             'business_name' => $role === 'employer' ? $this->faker->company() : null,
             'remember_token' => Str::random(10),
+            'location_id' => $location->id,
+            'lat' => $location->lat,
+            'lng' => $location->lng,
         ];
     }
 
