@@ -78,19 +78,37 @@ class AuthController extends Controller
 
     public function register(Request $request)
     {
-        $validated = $request->validate([
-            'name'           => 'required|string|max:255',
-            'contact_number' => 'nullable|string|max:20',
-            'email'          => 'required|email|unique:users,email',
-            'password'       => 'required|string|min:6|confirmed',
-            'role'           => 'required|in:worker,employer',
-            'skills'         => 'nullable|string',
-            'experience'     => 'nullable|string',
-            'business_name'  => 'nullable|string',
-            'lat'            => 'nullable|string',
-            'lng'            => 'nullable|string',
-            'location'       => 'nullable|string', // example: "Marinawa, Bato"
-        ]);
+        if($request->role === "worker"){
+            $validated = $request->validate([
+                'name'           => 'required|string|max:255',
+                'contact_number' => 'nullable|string|max:20',
+                'email'          => 'required|email|unique:users,email',
+                'password'       => 'required|string|min:6|confirmed',
+                'role'           => 'required|in:worker,employer',
+                'skills'         => 'required|string',
+                'experience'     => 'required|string',
+                'lat'            => 'required|string',
+                'lng'            => 'required|string',
+                'location'       => 'required|string',
+            ]);
+        } else if ($request->role === "employer"){
+            $validated = $request->validate([
+                'name'           => 'required|string|max:255',
+                'contact_number' => 'nullable|string|max:20',
+                'email'          => 'required|email|unique:users,email',
+                'password'       => 'required|string|min:6|confirmed',
+                'role'           => 'required|in:worker,employer',
+                'business_name'  => 'required|string',
+                'lat'            => 'required|string',
+                'lng'            => 'required|string',
+                'location'       => 'required|string',
+            ]);
+        } else {
+            $validated = $request->validate([
+                'role' => 'required',
+            ]);
+        }
+
 
         $locationId = null;
 
