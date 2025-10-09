@@ -31,7 +31,9 @@ class UserFactory extends Factory
         $location = $locations->random();
 
         return [
-            'name' => $this->faker->name(),
+            'first_name' => $this->faker->name(),
+            'middle_name' => $this->faker->name(),
+            'last_name' => $this->faker->name(),
             'contact_number' => $this->faker->phoneNumber(),
             'email' => $this->faker->unique()->safeEmail(),
             'email_verified_at' => now(),

@@ -18,20 +18,82 @@ class User extends Authenticatable
      *
      * @var list<string>
      */
+    
     protected $fillable = [
-        'name',
+        // 'first_name',
+        // 'middle_name',
+        // 'last_name',
+        // 'suffix',
+
+        // 'contact_number',
+        // 'email',
+        // 'email_verified_at',
+        // 'password',
+
+        // 'role',
+        // 'status',
+        // 'employer_type',
+
+        // 'lat',
+        // 'lng',
+        // 'location_id',
+
+        // 'business_name',
+
+        // 'skills',
+        // 'experience',
+        // 'average_rating',
+
+        // 'barangay_clearance_photo',
+        // 'valid_id_photo',
+        // 'selfie_with_id_photo',
+
+        // 'business_permit_photo',
+        // 'bir_certificate_photo',
+
+        'first_name',
+        'middle_name',
+        'last_name',
+        'suffix',
         'contact_number',
         'email',
+        'email_verified_at',
         'password',
         'role',
-        'status',
-        'skills',
-        'experience',
+        "status",
+
+        'sex',
+        'religion',
+        'civil_status',
+
+        'height',
+
+        'has_disability',
+        'disabilities',
+        'disability_specify',
+        
+        "skills",
+        "experience",
+        
         'average_rating',
+        
+        'employer_type',
         'business_name',
+
         'lat',
         'lng',
-        'location_id'
+
+        'location_id',
+        'location_id',
+
+        // Common required images
+        'barangay_clearance_photo',
+        'valid_id_photo',
+        'selfie_with_id_photo',
+
+        // Employer-specific docs
+        'business_permit_photo',
+        'bir_certificate_photo',
     ];
 
     /**
@@ -86,5 +148,13 @@ class User extends Authenticatable
     public function notifications()
     {
         return $this->hasMany(Notification::class);
+    }
+
+    public function educations() {
+        return $this->hasMany(Education::class);
+    }
+
+    public function certificates() {
+        return $this->hasMany(Certificate::class);
     }
 }

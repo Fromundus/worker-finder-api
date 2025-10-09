@@ -25,18 +25,20 @@ class DatabaseSeeder extends Seeder
 
         // 2. Admin
         User::factory()->create([
-            'name' => 'Admin User',
+            'first_name' => 'Admin User',
+            'middle_name' => 'Admin User',
+            'last_name' => 'Admin User',
             'email' => 'admin@example.com',
             'password' => bcrypt('password'),
             'role' => 'admin',
         ]);
 
         // 3. Employers & Workers
-        $workers = User::factory(50)->create(['role' => 'worker']);
-        $employers = User::factory(50)->create(['role' => 'employer']);
+        // $workers = User::factory(50)->create(['role' => 'worker']);
+        // $employers = User::factory(50)->create(['role' => 'employer']);
 
         // 4. Job posts linked to real barangays
-        $locations = Location::all();
+        // $locations = Location::all();
 
         // foreach($employers as $employer){
         //     $location = $locations->random();
@@ -49,18 +51,18 @@ class DatabaseSeeder extends Seeder
         //     ]);
         // }
         
-        foreach ($employers as $employer) {
-            JobPost::factory(5)->create([
-                'user_id' => $employer->id,
-            ])->each(function ($job) use ($locations) {
-                $location = $locations->random();
-                $job->update([
-                    'location_id' => $location->id,
-                    'lat' => $location->lat,
-                    'lng' => $location->lng,
-                ]);
-            });
-        }
+        // foreach ($employers as $employer) {
+        //     JobPost::factory(5)->create([
+        //         'user_id' => $employer->id,
+        //     ])->each(function ($job) use ($locations) {
+        //         $location = $locations->random();
+        //         $job->update([
+        //             'location_id' => $location->id,
+        //             'lat' => $location->lat,
+        //             'lng' => $location->lng,
+        //         ]);
+        //     });
+        // }
 
         // $jobPosts = JobPost::factory(20)->create([
         //     'user_id' => $employers->random()->id,
