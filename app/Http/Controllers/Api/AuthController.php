@@ -309,7 +309,7 @@ class AuthController extends Controller
                 'bir_certificate_photo' => $validated['bir_certificate_photo'] ?? null,
             ]);
 
-            logger('EDUCATIONS DATA:', $validated['educations']);
+            // logger('EDUCATIONS DATA:', $validated['educations']);
     
             if ($request->role === 'worker' && !empty($validated['educations'])) {
                 foreach ($validated['educations'] as $edu) {
@@ -321,7 +321,6 @@ class AuthController extends Controller
                     ]);
                 }
             }
-
     
             // ✅ Save Certificates + certificate_photo
             if ($request->role === 'worker' && !empty($validated['certificates'])) {
