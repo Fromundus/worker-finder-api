@@ -12,6 +12,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
 class UserController extends Controller
@@ -242,7 +243,7 @@ class UserController extends Controller
 
     public function showUserProfile(Request $request, $id)
     {
-        $user = User::findOrFail($id);
+        $user = User::with('educations')->with('certificates')->findOrFail($id);
 
         // Completed jobs (if worker → jobs they've done; if employer → jobs they've posted & filled)
         $completedApp = Application::where('user_id', $user->id)
@@ -329,43 +330,446 @@ class UserController extends Controller
     //     ]);
     // }
 
+    // public function update(Request $request)
+    // {
+    //     $user = $request->user();
+
+    //     $rules = [
+    //         'name'           => 'required|string|max:255',
+    //         'contact_number' => 'nullable|string|max:20',
+    //         'email'          => 'nullable|email|unique:users,email,' . $user->id,
+    //         'password'       => 'nullable|min:6|confirmed',
+
+    //         'location_id'    => 'nullable|exists:locations,id', // NEW
+    //         'lat'            => 'nullable|string',
+    //         'lng'            => 'nullable|string',
+    //     ];
+
+    //     if ($user->role === 'worker') {
+    //         $rules['skills'] = 'nullable|string';
+    //         $rules['experience'] = 'nullable|string';
+    //     }
+
+    //     if ($user->role === 'employer') {
+    //         $rules['business_name'] = 'nullable|string|max:255';
+    //     }
+
+    //     $validated = $request->validate($rules);
+
+    //     if ($request->filled('password')) {
+    //         $validated['password'] = bcrypt($request->password);
+    //     } else {
+    //         unset($validated['password']);
+    //     }
+
+    //     $user->update($validated);
+
+    //     return response()->json([
+    //         'message' => 'Profile updated successfully',
+    //         'user'    => $user->load('location'), // include relationship if needed
+    //     ]);
+    // }
+
+    // public function update(Request $request)
+    // {
+    //     $user = $request->user();
+
+    //     // ✅ Decode only educations (same as register)
+    //     $decodedEducations = json_decode($request->input('educations'), true);
+    //     $request->merge([
+    //         'educations' => $decodedEducations,
+    //     ]);
+
+    //     $baseRules = [
+    //         "first_name" => "required|string|max:100",
+    //         "middle_name" => "nullable|string|max:100",
+    //         "last_name" => "required|string|max:100",
+    //         "suffix" => "nullable|string|max:20",
+    //         "contact_number" => "nullable|string|min:11|max:11",
+    //         "birth_day" => "nullable|string",
+    //         "email" => "nullable|email|unique:users,email," . $user->id,
+    //         "password" => "nullable|confirmed|min:6",
+    //         "sex" => "nullable|string|max:255",
+    //         "religion" => "nullable|string|max:255",
+    //         "civil_status" => "nullable|string|max:255",
+    //         "height" => "nullable|string|max:255",
+    //         "location" => "nullable|string",
+    //         "lat" => "nullable|string",
+    //         "lng" => "nullable|string",
+
+    //         "has_disability" => "nullable|boolean",
+    //         "disabilities" => "nullable|string",
+    //         "disability_specify" => "nullable|string|max:255",
+
+    //         'barangay_clearance_photo' => 'nullable|image|mimes:jpeg,png,jpg|max:4096',
+    //         'valid_id_photo' => 'nullable|image|mimes:jpeg,png,jpg|max:4096',
+    //         'selfie_with_id_photo' => 'nullable|image|mimes:jpeg,png,jpg|max:4096',
+    //         'business_permit_photo' => 'nullable|image|mimes:jpeg,png,jpg|max:4096',
+    //         'bir_certificate_photo' => 'nullable|image|mimes:jpeg,png,jpg|max:4096',
+    //     ];
+
+    //     $extraRules = [];
+
+    //     if ($user->role === 'worker') {
+    //         $extraRules = [
+    //             "skills" => "nullable|string",
+    //             "skill_specify" => "nullable|string",
+    //             "experience" => "nullable|string",
+
+    //             'educations' => 'nullable|array',
+    //             'educations.*.level' => 'required_with:educations|string|max:255',
+    //             'educations.*.school_name' => 'required_with:educations|string|max:255',
+    //             'educations.*.course' => 'nullable|string|max:255',
+    //             'educations.*.year_graduated' => 'nullable|digits:4|min:0|max:2025',
+
+    //             'certificates' => 'nullable|array',
+    //             'certificates.*.title' => 'required|string|max:255',
+    //             'certificates.*.issuing_organization' => 'nullable|string|max:255',
+    //             'certificates.*.date_issued' => 'nullable|date',
+    //             'certificates.*.certificate_photo' => 'nullable|image|mimes:jpeg,png,jpg|max:4096',
+    //         ];
+
+    //         if ($request->has_disability == true) {
+    //             $extraRules = array_merge($extraRules, [
+    //                 "disabilities" => "required|string",
+    //             ]);
+    //         }
+    //     } else if ($user->role === 'employer') {
+    //         $extraRules = [
+    //             "employer_type" => "nullable|string",
+    //             "business_name" => "nullable|string|max:255",
+    //         ];
+    //     }
+
+    //     $validated = $request->validate(array_merge($baseRules, $extraRules));
+
+    //     try {
+    //         DB::beginTransaction();
+
+    //         // ✅ Handle password
+    //         if (!empty($validated['password'])) {
+    //             $validated['password'] = bcrypt($validated['password']);
+    //         } else {
+    //             unset($validated['password']);
+    //         }
+
+    //         // ✅ Handle image uploads — store only filename
+    //         $uploadFolder = 'uploads/users';
+    //         $fileFields = [
+    //             'barangay_clearance_photo',
+    //             'valid_id_photo',
+    //             'selfie_with_id_photo',
+    //             'business_permit_photo',
+    //             'bir_certificate_photo',
+    //         ];
+
+    //         foreach ($fileFields as $field) {
+    //             if ($request->hasFile($field)) {
+    //                 $file = $request->file($field);
+    //                 $filename = uniqid() . '.' . $file->getClientOriginalExtension();
+    //                 $file->storeAs($uploadFolder, $filename, 'public');
+    //                 $validated[$field] = $filename;
+    //             }
+    //         }
+
+    //         // ✅ Handle location conversion (same as register)
+    //         $locationId = $user->location_id;
+    //         if (!empty($validated['location'])) {
+    //             [$barangay, $municipality] = array_map('trim', explode(',', $validated['location']));
+    //             $location = \App\Models\Location::where('barangay', 'like', $barangay)
+    //                 ->where('municipality', 'like', $municipality)
+    //                 ->first();
+
+    //             if ($location) {
+    //                 $locationId = $location->id;
+    //             }
+    //         }
+    //         $validated['location_id'] = $locationId;
+
+    //         // ✅ Update user
+    //         $user->update($validated);
+
+    //         // ✅ Sync educations
+    //         if ($user->role === 'worker' && !empty($validated['educations'])) {
+    //             $user->educations()->delete();
+    //             foreach ($validated['educations'] as $edu) {
+    //                 $user->educations()->create([
+    //                     'level' => $edu['level'],
+    //                     'school_name' => $edu['school_name'],
+    //                     'course' => $edu['course'] ?? null,
+    //                     'year_graduated' => $edu['year_graduated'] ?? null,
+    //                 ]);
+    //             }
+    //         }
+
+    //         // ✅ Sync certificates (exact same logic as register)
+    //         if ($user->role === 'worker' && !empty($validated['certificates'])) {
+    //             $user->certificates()->delete();
+    //             foreach ($validated['certificates'] as $index => $cert) {
+    //                 $filename = null;
+    //                 if ($request->hasFile("certificates.$index.certificate_photo")) {
+    //                     $file = $request->file("certificates.$index.certificate_photo");
+    //                     $filename = uniqid() . '.' . $file->getClientOriginalExtension();
+    //                     $file->storeAs($uploadFolder, $filename, 'public');
+    //                 }
+
+    //                 $user->certificates()->create([
+    //                     'title' => $cert['title'],
+    //                     'issuing_organization' => $cert['issuing_organization'] ?? null,
+    //                     'date_issued' => $cert['date_issued'] ?? null,
+    //                     'certificate_photo' => $filename,
+    //                 ]);
+    //             }
+    //         }
+
+    //         DB::commit();
+
+    //         return response()->json([
+    //             'message' => 'Profile updated successfully',
+    //             'user'    => $user->load('location', 'educations', 'certificates'),
+    //         ]);
+    //     } catch (\Exception $e) {
+    //         DB::rollBack();
+    //         return response()->json([
+    //             "message" => $e->getMessage(),
+    //         ], 500);
+    //     }
+    // }
+
     public function update(Request $request)
     {
         $user = $request->user();
 
-        $rules = [
-            'name'           => 'required|string|max:255',
-            'contact_number' => 'nullable|string|max:20',
-            'email'          => 'nullable|email|unique:users,email,' . $user->id,
-            'password'       => 'nullable|min:6|confirmed',
+        Log::info($request);
 
-            'location_id'    => 'nullable|exists:locations,id', // NEW
-            'lat'            => 'nullable|string',
-            'lng'            => 'nullable|string',
+        // ✅ Decode only educations (same as register)
+        $decodedEducations = json_decode($request->input('educations'), true);
+        $request->merge([
+            'educations' => $decodedEducations,
+        ]);
+
+        $baseRules = [
+            "first_name" => "required|string|max:100",
+            "middle_name" => "nullable|string|max:100",
+            "last_name" => "required|string|max:100",
+            "suffix" => "nullable|string|max:20",
+            "contact_number" => "nullable|string|min:11|max:11",
+            "birth_day" => "nullable|string",
+            "email" => "nullable|email|unique:users,email," . $user->id,
+            "password" => "nullable|confirmed|min:6",
+            "sex" => "nullable|string|max:255",
+            "religion" => "nullable|string|max:255",
+            "civil_status" => "nullable|string|max:255",
+            "height" => "nullable|string|max:255",
+            "location" => "nullable|string",
+            "lat" => "nullable|string",
+            "lng" => "nullable|string",
+
+            "has_disability" => "nullable|boolean",
+            "disabilities" => "nullable|string",
+            "disability_specify" => "nullable|string|max:255",
+
+            'barangay_clearance_photo' => 'nullable|image|mimes:jpeg,png,jpg|max:4096',
+            'valid_id_photo' => 'nullable|image|mimes:jpeg,png,jpg|max:4096',
+            'selfie_with_id_photo' => 'nullable|image|mimes:jpeg,png,jpg|max:4096',
+            'business_permit_photo' => 'nullable|image|mimes:jpeg,png,jpg|max:4096',
+            'bir_certificate_photo' => 'nullable|image|mimes:jpeg,png,jpg|max:4096',
         ];
 
+        $extraRules = [];
+
         if ($user->role === 'worker') {
-            $rules['skills'] = 'nullable|string';
-            $rules['experience'] = 'nullable|string';
+            $extraRules = [
+                "skills" => "nullable|string",
+                "skill_specify" => "nullable|string",
+                "experience" => "nullable|string",
+
+                'educations' => 'nullable|array',
+                'educations.*.level' => 'required_with:educations|string|max:255',
+                'educations.*.school_name' => 'required_with:educations|string|max:255',
+                'educations.*.course' => 'nullable|string|max:255',
+                'educations.*.year_graduated' => 'nullable|digits:4|min:0|max:2025',
+
+                'certificates' => 'nullable|array',
+                'certificates.*.id' => 'nullable|integer|exists:certificates,id',
+                'certificates.*.title' => 'required|string|max:255',
+                'certificates.*.issuing_organization' => 'nullable|string|max:255',
+                'certificates.*.date_issued' => 'nullable|date',
+                'certificates.*.certificate_photo' => 'nullable|image|mimes:jpeg,png,jpg|max:4096',
+            ];
+
+            if ($request->has_disability == true) {
+                $extraRules = array_merge($extraRules, [
+                    "disabilities" => "required|string",
+                ]);
+            }
+        } else if ($user->role === 'employer') {
+            $extraRules = [
+                "employer_type" => "nullable|string",
+                "business_name" => "nullable|string|max:255",
+            ];
         }
 
-        if ($user->role === 'employer') {
-            $rules['business_name'] = 'nullable|string|max:255';
+        $validated = $request->validate(array_merge($baseRules, $extraRules));
+
+        try {
+            DB::beginTransaction();
+
+            // ✅ Handle password
+            if (!empty($validated['password'])) {
+                $validated['password'] = bcrypt($validated['password']);
+            } else {
+                unset($validated['password']);
+            }
+
+            // ✅ Handle image uploads — store only filename
+            $uploadFolder = 'uploads/users';
+            $fileFields = [
+                'barangay_clearance_photo',
+                'valid_id_photo',
+                'selfie_with_id_photo',
+                'business_permit_photo',
+                'bir_certificate_photo',
+            ];
+
+            // foreach ($fileFields as $field) {
+            //     if ($request->hasFile($field)) {
+            //         $file = $request->file($field);
+            //         $filename = uniqid() . '.' . $file->getClientOriginalExtension();
+            //         $file->storeAs($uploadFolder, $filename, 'public');
+            //         $validated[$field] = $filename;
+            //     }
+            // }
+
+            foreach ($fileFields as $field) {
+                if ($request->hasFile($field)) {
+                    $file = $request->file($field);
+                    $filename = uniqid() . '.' . $file->getClientOriginalExtension();
+                    $file->storeAs($uploadFolder, $filename, 'public');
+                    $validated[$field] = $filename;
+                } else {
+                    // 👇 preserve the old value
+                    $validated[$field] = $user->{$field};
+                }
+            }
+
+            // ✅ Handle location conversion (same as register)
+            $locationId = $user->location_id;
+            if (!empty($validated['location'])) {
+                [$barangay, $municipality] = array_map('trim', explode(',', $validated['location']));
+                $location = \App\Models\Location::where('barangay', 'like', $barangay)
+                    ->where('municipality', 'like', $municipality)
+                    ->first();
+
+                if ($location) {
+                    $locationId = $location->id;
+                }
+            }
+            $validated['location_id'] = $locationId;
+
+            // ✅ Update user
+            $user->update($validated);
+
+            // ✅ Sync educations — only replace if new data is sent
+            if ($user->role === 'worker' && $request->has('educations') && !empty($validated['educations'])) {
+                $user->educations()->delete();
+                foreach ($validated['educations'] as $edu) {
+                    $user->educations()->create([
+                        'level' => $edu['level'],
+                        'school_name' => $edu['school_name'],
+                        'course' => $edu['course'] ?? null,
+                        'year_graduated' => $edu['year_graduated'] ?? null,
+                    ]);
+                }
+            }
+
+            // ✅ Sync certificates — only replace if new data is sent
+            // if ($user->role === 'worker' && $request->has('certificates') && !empty($validated['certificates'])) {
+            //     $user->certificates()->delete();
+            //     foreach ($validated['certificates'] as $index => $cert) {
+            //         $filename = null;
+            //         if ($request->hasFile("certificates.$index.certificate_photo")) {
+            //             $file = $request->file("certificates.$index.certificate_photo");
+            //             $filename = uniqid() . '.' . $file->getClientOriginalExtension();
+            //             $file->storeAs($uploadFolder, $filename, 'public');
+            //         }
+
+            //         $user->certificates()->create([
+            //             'title' => $cert['title'],
+            //             'issuing_organization' => $cert['issuing_organization'] ?? null,
+            //             'date_issued' => $cert['date_issued'] ?? null,
+            //             'certificate_photo' => $filename,
+            //         ]);
+            //     }
+            // }
+
+            if ($user->role === 'worker' && $request->has('certificates')) {
+                $incomingCerts = $validated['certificates'] ?? [];
+
+                // Keep track of IDs that remain
+                $existingIds = [];
+
+                foreach ($incomingCerts as $index => $cert) {
+                    // 1️⃣ If certificate has an ID → update
+                    if (!empty($cert['id'])) {
+                        $existingCert = $user->certificates()->find($cert['id']);
+                        if ($existingCert) {
+                            $filename = $existingCert->certificate_photo;
+
+                            // Handle new upload
+                            if ($request->hasFile("certificates.$index.certificate_photo")) {
+                                $file = $request->file("certificates.$index.certificate_photo");
+                                $filename = uniqid() . '.' . $file->getClientOriginalExtension();
+                                $file->storeAs($uploadFolder, $filename, 'public');
+                            }
+
+                            $existingCert->update([
+                                'title' => $cert['title'],
+                                'issuing_organization' => $cert['issuing_organization'] ?? null,
+                                'date_issued' => $cert['date_issued'] ?? null,
+                                'certificate_photo' => $filename,
+                            ]);
+
+                            $existingIds[] = $existingCert->id;
+                        }
+                    } 
+                    // 2️⃣ If no ID → create new one
+                    else {
+                        $filename = null;
+
+                        if ($request->hasFile("certificates.$index.certificate_photo")) {
+                            $file = $request->file("certificates.$index.certificate_photo");
+                            $filename = uniqid() . '.' . $file->getClientOriginalExtension();
+                            $file->storeAs($uploadFolder, $filename, 'public');
+                        }
+
+                        $newCert = $user->certificates()->create([
+                            'title' => $cert['title'],
+                            'issuing_organization' => $cert['issuing_organization'] ?? null,
+                            'date_issued' => $cert['date_issued'] ?? null,
+                            'certificate_photo' => $filename,
+                        ]);
+
+                        $existingIds[] = $newCert->id;
+                    }
+                }
+
+                // 3️⃣ Delete certificates that were removed on frontend
+                $user->certificates()->whereNotIn('id', $existingIds)->delete();
+            }
+
+
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Profile updated successfully',
+                'user'    => $user->load('location', 'educations', 'certificates'),
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                "message" => $e->getMessage(),
+            ], 500);
         }
-
-        $validated = $request->validate($rules);
-
-        if ($request->filled('password')) {
-            $validated['password'] = bcrypt($request->password);
-        } else {
-            unset($validated['password']);
-        }
-
-        $user->update($validated);
-
-        return response()->json([
-            'message' => 'Profile updated successfully',
-            'user'    => $user->load('location'), // include relationship if needed
-        ]);
     }
 }

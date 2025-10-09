@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\FileController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\ApplicationController;
 use App\Http\Controllers\BookingController;
@@ -38,7 +39,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function(){
 
     Route::get('/profile', [UserController::class, 'show']);
     Route::get('/user-profile/{id}', [UserController::class, 'showUserProfile']);
-    Route::put('/profile', [UserController::class, 'update']);
+    Route::post('/profile/update', [UserController::class, 'update']);
     
     Route::post('job-posts', [JobPostController::class, 'store']);
     Route::put('job-posts/{jobPost}', [JobPostController::class, 'update']);
@@ -89,13 +90,16 @@ Route::middleware(['auth:sanctum', 'active'])->group(function(){
     //USER ACCOUNTS
     Route::put('/updateuser/{id}', [UserController::class, 'update']);
     Route::put('/changepassword/{id}', [UserController::class, 'changePassword']);
+
 });
+
+Route::get('/files/{filename}', [FileController::class, 'show'])
+    ->where('filename', '.*');
 
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('register', [AuthController::class, 'register']);
 
 Route::get('job-posts-public', [JobPostController::class, 'indexPublic']);
-
 
 Route::get('/test', function(){
     return response()->json([

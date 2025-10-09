@@ -57,6 +57,7 @@ class User extends Authenticatable
         'suffix',
         'contact_number',
         'email',
+        'birth_day',
         'email_verified_at',
         'password',
         'role',
@@ -73,6 +74,8 @@ class User extends Authenticatable
         'disability_specify',
         
         "skills",
+        "skill_specify",
+        
         "experience",
         
         'average_rating',

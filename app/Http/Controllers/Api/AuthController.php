@@ -169,6 +169,7 @@ class AuthController extends Controller
             "last_name" => "required|string|max:100",
             "suffix" => "nullable|string|max:20",
             "contact_number" => "required|string|min:11|max:11",
+            "birth_day" => "required|string",
             "email" => "required|email|unique:users,email",
             "password" => "required|confirmed|min:6",
             "role" => ['required', Rule::in(['worker', 'employer'])],
@@ -201,7 +202,7 @@ class AuthController extends Controller
                 'educations.*.level' => 'required|string|max:255',
                 'educations.*.school_name' => 'required|string|max:255',
                 'educations.*.course' => 'nullable|string|max:255',
-                'educations.*.year_graduated' => 'nullable|digits:4',
+                'educations.*.year_graduated' => 'nullable|digits:4|min:0|max:2025',
         
                 'certificates' => 'required|array|min:1',
                 'certificates.*.title' => 'required|string|max:255',
@@ -235,7 +236,7 @@ class AuthController extends Controller
 
         try {
             DB::beginTransaction();
-
+    
             $uploadFolder = 'uploads/users';
             $fileFields = [
                 'barangay_clearance_photo',
@@ -244,14 +245,18 @@ class AuthController extends Controller
                 'business_permit_photo',
                 'bir_certificate_photo',
             ];
-    
+
+            // ✅ Save all uploaded files in a single folder, store only filename
             foreach ($fileFields as $field) {
                 if ($request->hasFile($field)) {
-                    $path = $request->file($field)->store($uploadFolder, 'public');
-                    $validated[$field] = $path;
+                    $file = $request->file($field);
+                    $filename = uniqid() . '.' . $file->getClientOriginalExtension();
+
+                    $file->storeAs($uploadFolder, $filename, 'public');
+                    $validated[$field] = $filename; // store only filename in DB
                 }
             }
-    
+
             $locationId = null;
     
             if (!empty($validated['location'])) {
@@ -274,6 +279,7 @@ class AuthController extends Controller
                 'suffix' => $validated['suffix'] ?? null,
                 'contact_number' => $validated['contact_number'],
                 'email' => $validated['email'],
+                'birth_day' => $validated['birth_day'],
                 'password' => bcrypt($validated['password']),
                 'role' => $validated['role'],
     
@@ -321,22 +327,23 @@ class AuthController extends Controller
                     ]);
                 }
             }
-    
-            // ✅ Save Certificates + certificate_photo
+
             if ($request->role === 'worker' && !empty($validated['certificates'])) {
                 foreach ($validated['certificates'] as $index => $cert) {
-                    $path = null;
-                    // If photo exists for this certificate, save it separately
+                    $filename = null;
+
                     if ($request->hasFile("certificates.$index.certificate_photo")) {
-                        $path = $request->file("certificates.$index.certificate_photo")
-                            ->store('uploads/certificates', 'public');
+                        $file = $request->file("certificates.$index.certificate_photo");
+                        $filename = uniqid() . '.' . $file->getClientOriginalExtension();
+
+                        $file->storeAs('uploads/users', $filename, 'public'); // same folder
                     }
-    
+
                     $user->certificates()->create([
                         'title' => $cert['title'],
                         'issuing_organization' => $cert['issuing_organization'] ?? null,
                         'date_issued' => $cert['date_issued'] ?? null,
-                        'certificate_photo' => $path,
+                        'certificate_photo' => $filename, // ✅ store filename only
                     ]);
                 }
             }
@@ -404,7 +411,7 @@ class AuthController extends Controller
 
     public function me(Request $request)
     {
-        $user = $request->user()->load('location');
+        $user = $request->user()->load('location', 'educations', 'certificates');
 
         return response()->json($user);
     }
