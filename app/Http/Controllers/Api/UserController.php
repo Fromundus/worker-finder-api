@@ -8,6 +8,7 @@ use App\Models\Booking;
 use App\Models\Feedback;
 use App\Models\JobPost;
 use App\Models\User;
+use App\Services\MoceanService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -106,19 +107,58 @@ class UserController extends Controller
         return response()->json(['message' => 'Roles updated successfully']);
     }
 
-    public function updateStatus(Request $request){
+    // public function updateStatus(Request $request){
+    //     $validated = $request->validate([
+    //         'ids' => 'required|array',
+    //         'status' => 'required|string',
+    //     ]);
+
+    //     DB::table('users')
+    //         ->whereIn('id', $validated['ids'])
+    //         ->update(['status' => $validated['status']]);
+
+    //     $users = User::whereIn('id', $validated['ids'])->get();
+
+    //     return response()->json(['message' => 'Status updated successfully']);
+    // }
+
+    
+    public function updateStatus(Request $request, MoceanService $mocean)
+    {
         $validated = $request->validate([
             'ids' => 'required|array',
             'status' => 'required|string',
         ]);
 
+        // Update the users' status in DB
         DB::table('users')
             ->whereIn('id', $validated['ids'])
             ->update(['status' => $validated['status']]);
 
+        // Fetch affected users
         $users = User::whereIn('id', $validated['ids'])->get();
+        
+        $website = env('WORKERFINDER_URL', 'http://localhost:5173');
 
-        return response()->json(['message' => 'Status updated successfully']);
+        // Define your custom SMS messages
+        $status = strtolower($validated['status']);
+        $messages = [
+            'active' => "Ang iyong account ay naaprubahan! Maaari ka nang mag log in. Bisitahin kami sa {$website} Salamat sa iyong pagtitiwala!",
+            'inactive' => "Ang iyong account ay hindi na pwedeng gamitin sa kasalukuyan. Makipag-ugnayan sa amin upang maibalik ang iyong access.",
+            'rejected' => "Paumanhin, ang iyong account ay hindi naaprubahan. Pakisubukang mag rehistro muli sa {$website}/register.",
+        ];
+
+        // Choose message (default fallback)
+        $message = $messages[$status] ?? "Your account status has been updated to: {$validated['status']}.";
+
+        // Send SMS to all affected users
+        foreach ($users as $user) {
+            if (!empty($user->contact_number)) {
+                $mocean->sendSms($user->contact_number, $message);
+            }
+        }
+
+        return response()->json(['message' => 'Status updated and SMS notifications sent successfully']);
     }
 
     public function changePassword(Request $request, $id){
@@ -290,251 +330,6 @@ class UserController extends Controller
             'totalBookings' => $totalBookings,
         ]);
     }
-
-    // public function update(Request $request)
-    // {
-    //     $user = $request->user();
-
-    //     $rules = [
-    //         'name' => 'required|string|max:255',
-    //         'contact_number' => 'nullable|string|max:20',
-    //         'email' => 'nullable|email|unique:users,email,' . $user->id,
-    //         'password' => 'nullable|min:6|confirmed',
-    //         'address' => 'nullable|string',
-    //         'lat' => 'nullable|string',
-    //         'lng' => 'nullable|string',
-    //     ];
-
-    //     if ($user->role === 'worker') {
-    //         $rules['skills'] = 'nullable|string';
-    //         $rules['experience'] = 'nullable|string';
-    //     }
-
-    //     if ($user->role === 'employer') {
-    //         $rules['business_name'] = 'nullable|string|max:255';
-    //     }
-
-    //     $validated = $request->validate($rules);
-
-    //     if ($request->filled('password')) {
-    //         $validated['password'] = bcrypt($request->password);
-    //     } else {
-    //         unset($validated['password']);
-    //     }
-
-    //     $user->update($validated);
-
-    //     return response()->json([
-    //         'message' => 'Profile updated successfully',
-    //         'user' => $user,
-    //     ]);
-    // }
-
-    // public function update(Request $request)
-    // {
-    //     $user = $request->user();
-
-    //     $rules = [
-    //         'name'           => 'required|string|max:255',
-    //         'contact_number' => 'nullable|string|max:20',
-    //         'email'          => 'nullable|email|unique:users,email,' . $user->id,
-    //         'password'       => 'nullable|min:6|confirmed',
-
-    //         'location_id'    => 'nullable|exists:locations,id', // NEW
-    //         'lat'            => 'nullable|string',
-    //         'lng'            => 'nullable|string',
-    //     ];
-
-    //     if ($user->role === 'worker') {
-    //         $rules['skills'] = 'nullable|string';
-    //         $rules['experience'] = 'nullable|string';
-    //     }
-
-    //     if ($user->role === 'employer') {
-    //         $rules['business_name'] = 'nullable|string|max:255';
-    //     }
-
-    //     $validated = $request->validate($rules);
-
-    //     if ($request->filled('password')) {
-    //         $validated['password'] = bcrypt($request->password);
-    //     } else {
-    //         unset($validated['password']);
-    //     }
-
-    //     $user->update($validated);
-
-    //     return response()->json([
-    //         'message' => 'Profile updated successfully',
-    //         'user'    => $user->load('location'), // include relationship if needed
-    //     ]);
-    // }
-
-    // public function update(Request $request)
-    // {
-    //     $user = $request->user();
-
-    //     // ✅ Decode only educations (same as register)
-    //     $decodedEducations = json_decode($request->input('educations'), true);
-    //     $request->merge([
-    //         'educations' => $decodedEducations,
-    //     ]);
-
-    //     $baseRules = [
-    //         "first_name" => "required|string|max:100",
-    //         "middle_name" => "nullable|string|max:100",
-    //         "last_name" => "required|string|max:100",
-    //         "suffix" => "nullable|string|max:20",
-    //         "contact_number" => "nullable|string|min:11|max:11",
-    //         "birth_day" => "nullable|string",
-    //         "email" => "nullable|email|unique:users,email," . $user->id,
-    //         "password" => "nullable|confirmed|min:6",
-    //         "sex" => "nullable|string|max:255",
-    //         "religion" => "nullable|string|max:255",
-    //         "civil_status" => "nullable|string|max:255",
-    //         "height" => "nullable|string|max:255",
-    //         "location" => "nullable|string",
-    //         "lat" => "nullable|string",
-    //         "lng" => "nullable|string",
-
-    //         "has_disability" => "nullable|boolean",
-    //         "disabilities" => "nullable|string",
-    //         "disability_specify" => "nullable|string|max:255",
-
-    //         'barangay_clearance_photo' => 'nullable|image|mimes:jpeg,png,jpg|max:4096',
-    //         'valid_id_photo' => 'nullable|image|mimes:jpeg,png,jpg|max:4096',
-    //         'selfie_with_id_photo' => 'nullable|image|mimes:jpeg,png,jpg|max:4096',
-    //         'business_permit_photo' => 'nullable|image|mimes:jpeg,png,jpg|max:4096',
-    //         'bir_certificate_photo' => 'nullable|image|mimes:jpeg,png,jpg|max:4096',
-    //     ];
-
-    //     $extraRules = [];
-
-    //     if ($user->role === 'worker') {
-    //         $extraRules = [
-    //             "skills" => "nullable|string",
-    //             "skill_specify" => "nullable|string",
-    //             "experience" => "nullable|string",
-
-    //             'educations' => 'nullable|array',
-    //             'educations.*.level' => 'required_with:educations|string|max:255',
-    //             'educations.*.school_name' => 'required_with:educations|string|max:255',
-    //             'educations.*.course' => 'nullable|string|max:255',
-    //             'educations.*.year_graduated' => 'nullable|digits:4|min:0|max:2025',
-
-    //             'certificates' => 'nullable|array',
-    //             'certificates.*.title' => 'required|string|max:255',
-    //             'certificates.*.issuing_organization' => 'nullable|string|max:255',
-    //             'certificates.*.date_issued' => 'nullable|date',
-    //             'certificates.*.certificate_photo' => 'nullable|image|mimes:jpeg,png,jpg|max:4096',
-    //         ];
-
-    //         if ($request->has_disability == true) {
-    //             $extraRules = array_merge($extraRules, [
-    //                 "disabilities" => "required|string",
-    //             ]);
-    //         }
-    //     } else if ($user->role === 'employer') {
-    //         $extraRules = [
-    //             "employer_type" => "nullable|string",
-    //             "business_name" => "nullable|string|max:255",
-    //         ];
-    //     }
-
-    //     $validated = $request->validate(array_merge($baseRules, $extraRules));
-
-    //     try {
-    //         DB::beginTransaction();
-
-    //         // ✅ Handle password
-    //         if (!empty($validated['password'])) {
-    //             $validated['password'] = bcrypt($validated['password']);
-    //         } else {
-    //             unset($validated['password']);
-    //         }
-
-    //         // ✅ Handle image uploads — store only filename
-    //         $uploadFolder = 'uploads/users';
-    //         $fileFields = [
-    //             'barangay_clearance_photo',
-    //             'valid_id_photo',
-    //             'selfie_with_id_photo',
-    //             'business_permit_photo',
-    //             'bir_certificate_photo',
-    //         ];
-
-    //         foreach ($fileFields as $field) {
-    //             if ($request->hasFile($field)) {
-    //                 $file = $request->file($field);
-    //                 $filename = uniqid() . '.' . $file->getClientOriginalExtension();
-    //                 $file->storeAs($uploadFolder, $filename, 'public');
-    //                 $validated[$field] = $filename;
-    //             }
-    //         }
-
-    //         // ✅ Handle location conversion (same as register)
-    //         $locationId = $user->location_id;
-    //         if (!empty($validated['location'])) {
-    //             [$barangay, $municipality] = array_map('trim', explode(',', $validated['location']));
-    //             $location = \App\Models\Location::where('barangay', 'like', $barangay)
-    //                 ->where('municipality', 'like', $municipality)
-    //                 ->first();
-
-    //             if ($location) {
-    //                 $locationId = $location->id;
-    //             }
-    //         }
-    //         $validated['location_id'] = $locationId;
-
-    //         // ✅ Update user
-    //         $user->update($validated);
-
-    //         // ✅ Sync educations
-    //         if ($user->role === 'worker' && !empty($validated['educations'])) {
-    //             $user->educations()->delete();
-    //             foreach ($validated['educations'] as $edu) {
-    //                 $user->educations()->create([
-    //                     'level' => $edu['level'],
-    //                     'school_name' => $edu['school_name'],
-    //                     'course' => $edu['course'] ?? null,
-    //                     'year_graduated' => $edu['year_graduated'] ?? null,
-    //                 ]);
-    //             }
-    //         }
-
-    //         // ✅ Sync certificates (exact same logic as register)
-    //         if ($user->role === 'worker' && !empty($validated['certificates'])) {
-    //             $user->certificates()->delete();
-    //             foreach ($validated['certificates'] as $index => $cert) {
-    //                 $filename = null;
-    //                 if ($request->hasFile("certificates.$index.certificate_photo")) {
-    //                     $file = $request->file("certificates.$index.certificate_photo");
-    //                     $filename = uniqid() . '.' . $file->getClientOriginalExtension();
-    //                     $file->storeAs($uploadFolder, $filename, 'public');
-    //                 }
-
-    //                 $user->certificates()->create([
-    //                     'title' => $cert['title'],
-    //                     'issuing_organization' => $cert['issuing_organization'] ?? null,
-    //                     'date_issued' => $cert['date_issued'] ?? null,
-    //                     'certificate_photo' => $filename,
-    //                 ]);
-    //             }
-    //         }
-
-    //         DB::commit();
-
-    //         return response()->json([
-    //             'message' => 'Profile updated successfully',
-    //             'user'    => $user->load('location', 'educations', 'certificates'),
-    //         ]);
-    //     } catch (\Exception $e) {
-    //         DB::rollBack();
-    //         return response()->json([
-    //             "message" => $e->getMessage(),
-    //         ], 500);
-    //     }
-    // }
 
     public function update(Request $request)
     {

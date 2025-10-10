@@ -12,6 +12,10 @@ use App\Http\Controllers\JobPostController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\NotificationController;
+use App\Services\MoceanService;
+use GuzzleHttp\Client;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth:sanctum', 'active'])->group(function(){
@@ -105,4 +109,9 @@ Route::get('/test', function(){
     return response()->json([
         "message" => "success"
     ], 200);
+});
+
+Route::get('/test-sms', function (MoceanService $mocean) {
+    $response = $mocean->sendSms('09664574089', 'Hello from WorkerFinder!');
+    return response()->json($response);
 });
