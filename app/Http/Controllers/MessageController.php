@@ -18,13 +18,13 @@ class MessageController extends Controller
         }
 
         $messages = $conversation->messages()
-            ->with('sender:id,name')
+            ->with('sender:id,first_name,middle_name,last_name,suffix')
             ->orderBy('created_at', 'asc')
             ->get();
 
         return response()->json([
             "data" => $messages,
-            "conversation" => $conversation->load(['userOne:id,name', 'userTwo:id,name']),
+            "conversation" => $conversation->load(['userOne:id,first_name,middle_name,last_name,suffix', 'userTwo:id,first_name,middle_name,last_name,suffix']),
         ]);
     }
 
@@ -47,6 +47,6 @@ class MessageController extends Controller
 
         broadcast(new MessageSent($message))->toOthers();
 
-        return response()->json($message->load('sender:id,name'), 201);
+        return response()->json($message->load('sender:id,first_name,middle_name,last_name,suffix'), 201);
     }
 }

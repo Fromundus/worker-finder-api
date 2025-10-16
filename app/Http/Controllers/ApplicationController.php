@@ -42,7 +42,7 @@ class ApplicationController extends Controller
         NotificationService::storeNotification(
             $jobPost->user_id, // employer user_id
             'application',
-            "{$request->user()->name} applied to your job post: {$jobPost->title}"
+            "{$request->user()->first_name} {$request->user()->middle_name} {$request->user()->last_name} {$request->user()->suffix} applied to your job post: {$jobPost->title}"
         );
 
         return response()->json($application->load('user', 'jobPost'), 201);

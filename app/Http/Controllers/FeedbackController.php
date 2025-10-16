@@ -68,7 +68,7 @@ class FeedbackController extends Controller
         NotificationService::storeNotification(
             $data['to_user_id'],
             'feedback',
-            "⭐ You received new feedback from {$request->user()->name} on job '{$application->jobPost->title}' with a rating of {$data['rating']}."
+            "⭐ You received new feedback from {$request->user()->first_name} {$request->user()->middle_name} {$request->user()->last_name} {$request->user()->suffix} on job '{$application->jobPost->title}' with a rating of {$data['rating']}."
         );
 
         return response()->json([
@@ -96,7 +96,7 @@ class FeedbackController extends Controller
         // NotificationService::storeNotification(
         //     $data['to_user_id'],
         //     'feedback',
-        //     "⭐ You received new feedback from {$request->user()->name} on job '{$application->jobPost->title}' with a rating of {$data['rating']}."
+        //     "⭐ You received new feedback from {$request->user()->first_name} {$request->user()->middle_name} {$request->user()->last_name} {$request->user()->suffix} on job '{$application->jobPost->title}' with a rating of {$data['rating']}."
         // );
 
         return response()->json([
@@ -161,7 +161,7 @@ class FeedbackController extends Controller
         NotificationService::storeNotification(
             $data['to_user_id'],
             'feedback',
-            "⭐ You received new feedback from {$request->user()->name} on job '{$booking->job_title}' with a rating of {$data['rating']}."
+            "⭐ You received new feedback from {$request->user()->first_name} {$request->user()->middle_name} {$request->user()->last_name} {$request->user()->suffix} on job '{$booking->job_title}' with a rating of {$data['rating']}."
         );
 
         return response()->json([

@@ -13,6 +13,7 @@ use App\Http\Controllers\LocationController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\NotificationController;
 use App\Services\MoceanService;
+use App\Services\SMSService;
 use GuzzleHttp\Client;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -111,7 +112,7 @@ Route::get('/test', function(){
     ], 200);
 });
 
-Route::get('/test-sms', function (MoceanService $mocean) {
-    $response = $mocean->sendSms('09664574089', 'Hello from WorkerFinder!');
+Route::get('/test/sms-iprog', function(SMSService $smsservice){
+    $response = $smsservice->sendSms('09605510756', 'testing langs');
     return response()->json($response);
 });

@@ -13,8 +13,8 @@ class ConversationController extends Controller
         $user = $request->user();
 
         $conversations = Conversation::with([
-            'userOne:id,name',
-            'userTwo:id,name',
+            'userOne:id,first_name,middle_name,last_name,suffix',
+            'userTwo:id,first_name,middle_name,last_name,suffix',
             'messages' => fn($q) => $q->latest()->limit(1),
         ])
         ->where('user_one_id', $user->id)
@@ -64,7 +64,7 @@ class ConversationController extends Controller
             abort(403);
         }
 
-        $conversation->load(['userOne:id,name', 'userTwo:id,name']);
+        $conversation->load(['userOne:id,first_name,middle_name,last_name,suffix', 'userTwo:id,first_name,middle_name,last_name,suffix']);
         return response()->json($conversation);
     }
 }

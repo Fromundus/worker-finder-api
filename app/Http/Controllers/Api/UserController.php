@@ -9,6 +9,7 @@ use App\Models\Feedback;
 use App\Models\JobPost;
 use App\Models\User;
 use App\Services\MoceanService;
+use App\Services\SMSService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -123,7 +124,7 @@ class UserController extends Controller
     // }
 
     
-    public function updateStatus(Request $request, MoceanService $mocean)
+    public function updateStatus(Request $request, SMSService $smsservice)
     {
         $validated = $request->validate([
             'ids' => 'required|array',
@@ -138,27 +139,36 @@ class UserController extends Controller
         // Fetch affected users
         $users = User::whereIn('id', $validated['ids'])->get();
         
-        $website = env('WORKERFINDER_URL', 'http://localhost:5173');
-
-        // Define your custom SMS messages
+        
         $status = strtolower($validated['status']);
-        $messages = [
-            'active' => "Ang iyong account ay naaprubahan! Maaari ka nang mag log in. Bisitahin kami sa {$website} Salamat sa iyong pagtitiwala!",
-            'inactive' => "Ang iyong account ay hindi na pwedeng gamitin sa kasalukuyan. Makipag-ugnayan sa amin upang maibalik ang iyong access.",
-            'rejected' => "Paumanhin, ang iyong account ay hindi naaprubahan. Pakisubukang mag rehistro muli sa {$website}/register.",
-        ];
-
-        // Choose message (default fallback)
-        $message = $messages[$status] ?? "Your account status has been updated to: {$validated['status']}.";
 
         // Send SMS to all affected users
         foreach ($users as $user) {
+            $message = $this->messageForUser($user, $status);
+
             if (!empty($user->contact_number)) {
-                $mocean->sendSms($user->contact_number, $message);
+                $smsservice->sendSms($user->contact_number, $message);
             }
+
         }
 
         return response()->json(['message' => 'Status updated and SMS notifications sent successfully']);
+    }
+
+    private function messageForUser($user, $status){
+        // $website = env('WORKERFINDER_URL', 'http://localhost:5173');
+
+        // Define your custom SMS messages
+        $messages = [
+            'active' => "{$user->first_name}, ang iyong account ay naaprubahan! Maaari ka nang mag log in. Salamat sa iyong tiwala!",
+            'inactive' => "{$user->first_name}, ang iyong account ay hindi na pwedeng gamitin sa kasalukuyan. Makipag-ugnayan sa amin upang maibalik ang iyong access.",
+            'rejected' => "{$user->first_name}, paumanhin, ang iyong account ay hindi naaprubahan. Pakisubukang mag rehistro muli.",
+        ];
+
+        // Choose message (default fallback)
+        $message = $messages[$status] ?? "{$user->first_name}, your account status has been updated to: {$status}.";
+
+        return $message;
     }
 
     public function changePassword(Request $request, $id){

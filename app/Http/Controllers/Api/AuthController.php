@@ -165,7 +165,7 @@ class AuthController extends Controller
 
         $baseRules = [
             "first_name" => "required|string|max:100",
-            "middle_name" => "required|string|max:100",
+            "middle_name" => "nullable|string|max:100",
             "last_name" => "required|string|max:100",
             "suffix" => "nullable|string|max:20",
             "contact_number" => "required|string|min:11|max:11",
@@ -271,10 +271,17 @@ class AuthController extends Controller
                     $locationId = $location->id;
                 }
             }
+
+            $status = "";
+            if($validated['role'] === "worker"){
+                $status = 'active';
+            } else {
+                $status = 'pending';
+            }
     
             $user = User::create([
                 'first_name' => $validated['first_name'],
-                'middle_name' => $validated['middle_name'],
+                'middle_name' => $validated['middle_name'] ?? null,
                 'last_name' => $validated['last_name'],
                 'suffix' => $validated['suffix'] ?? null,
                 'contact_number' => $validated['contact_number'],
@@ -313,6 +320,8 @@ class AuthController extends Controller
                 // Employer-specific docs
                 'business_permit_photo' => $validated['business_permit_photo'] ?? null,
                 'bir_certificate_photo' => $validated['bir_certificate_photo'] ?? null,
+
+                'status' => $status,
             ]);
 
             // logger('EDUCATIONS DATA:', $validated['educations']);

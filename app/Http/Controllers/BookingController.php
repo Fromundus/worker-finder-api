@@ -74,12 +74,12 @@ class BookingController extends Controller
         NotificationService::storeNotification(
             $workerId, // employer user_id
             'booking',
-            "You have a new booking request from {$request->user()->name}. Job Title: {$request->job_title}"
+            "You have a new booking request from {$request->user()->first_name} {$request->user()->middle_name} {$request->user()->last_name} {$request->user()->suffix}. Job Title: {$request->job_title}"
         );
 
         return response()->json([
             'message' => 'Booking request sent to worker.',
-            'booking' => $booking->load('worker:id,name,email'),
+            'booking' => $booking->load('worker:id,first_name,middle_name,last_name,suffix,email'),
         ], 201);
     }
 
@@ -117,27 +117,27 @@ class BookingController extends Controller
             NotificationService::storeNotification(
                 $booking->employer_id, // employer user_id
                 'booking',
-                "{$worker->name} accepted your booking. Job Title: {$booking->job_title}"
+                "{$worker->first_name} {$worker->middle_name} {$worker->last_name} {$worker->suffix} accepted your booking. Job Title: {$booking->job_title}"
             );
         } else if ($validated["status"] === "cancelled"){
             if($request->user()->role === "worker"){
                 NotificationService::storeNotification(
                     $booking->employer_id, // employer user_id
                     'booking',
-                    "{$worker->name} rejected your booking. Job Title: {$booking->job_title}"
+                    "{$worker->first_name} {$worker->middle_name} {$worker->last_name} {$worker->suffix} rejected your booking. Job Title: {$booking->job_title}"
                 );
             } else {
                 NotificationService::storeNotification(
                     $booking->worker_id, // employer user_id
                     'booking',
-                    "{$employer->name} cancelled the booking. Job Title: {$booking->job_title}"
+                    "{$employer->first_name} {$employer->middle_name} {$employer->last_name} {$employer->suffix} cancelled the booking. Job Title: {$booking->job_title}"
                 );
             }
         } else if ($validated["status"] === "completed"){
             NotificationService::storeNotification(
                 $booking->worker_id, // employer user_id
                 'booking',
-                "{$employer->name} marked the booking as completed. Job Title: {$booking->job_title}"
+                "{$employer->first_name} {$employer->middle_name} {$employer->last_name} {$employer->suffix} marked the booking as completed. Job Title: {$booking->job_title}"
             );
         }
         
