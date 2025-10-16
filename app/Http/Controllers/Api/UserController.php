@@ -142,17 +142,18 @@ class UserController extends Controller
         
         $status = strtolower($validated['status']);
 
+        $response = null;
+
         // Send SMS to all affected users
         foreach ($users as $user) {
             $message = $this->messageForUser($user, $status);
 
-            if (!empty($user->contact_number)) {
-                $smsservice->sendSms($user->contact_number, $message);
-            }
-
+            // if (!empty($user->contact_number)) {
+            $response = $smsservice->sendSms($user->contact_number, $message);
+            // }
         }
 
-        return response()->json(['message' => 'Status updated and SMS notifications sent successfully']);
+        return response()->json(['message' => 'Status updated and SMS notifications sent successfully', 'response' => $response]);
     }
 
     private function messageForUser($user, $status){

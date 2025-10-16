@@ -102,7 +102,7 @@ class ApplicationController extends Controller
     public function updateStatus(Request $request, $id)
     {
         $validated = $request->validate([
-            'status' => 'required|string|in:pending,accepted,rejected,withdrawn,completed',
+            'status' => 'required|string|in:pending,forinterview,accepted,rejected,withdrawn,completed',
         ]);
 
         $application = Application::findOrFail($id);
@@ -120,6 +120,7 @@ class ApplicationController extends Controller
         $jobTitle = $application->jobPost->title;
 
         $messages = [
+            'forinterview'  => "Your are invited for an interview for the job {$jobTitle}.",
             'accepted'  => "Your application for {$jobTitle} was accepted.",
             'rejected'  => "Your application for {$jobTitle} was rejected.",
             'withdrawn' => "Your application for {$jobTitle} was withdrawn by the employer.",
