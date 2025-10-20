@@ -103,6 +103,10 @@ class ApplicationController extends Controller
     {
         $validated = $request->validate([
             'status' => 'required|string|in:pending,forinterview,accepted,rejected,withdrawn,completed',
+            'interview_date' => "nullable|string",
+            'interview_location' => 'nullable|string',
+            'lat'         => 'nullable|numeric|between:-90,90',
+            'lng'         => 'nullable|numeric|between:-180,180',
         ]);
 
         $application = Application::findOrFail($id);
@@ -113,6 +117,10 @@ class ApplicationController extends Controller
         }
 
         $application->status = $validated['status'];
+        $application->interview_date = $validated['interview_date'] ?? null;
+        $application->interview_location = $validated['interview_location'] ?? null;
+        $application->lat = $validated['lat'] ?? null;
+        $application->lng = $validated['lng'] ?? null;
         $application->save();
 
         // 🔔 Notify the worker (applicant)
@@ -141,5 +149,4 @@ class ApplicationController extends Controller
             'application' => $application->load('user', 'jobPost'),
         ]);
     }
-
 }

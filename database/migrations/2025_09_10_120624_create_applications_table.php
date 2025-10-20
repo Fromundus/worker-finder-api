@@ -20,6 +20,11 @@ return new class extends Migration
             $table->unique(['job_post_id','user_id']);
             $table->date("workerIsRated")->nullable();
             $table->date("employerIsRated")->nullable();
+
+            $table->date('interview_date')->nullable();
+            $table->date('interview_location')->nullable();
+            $table->string('lat')->nullable();
+            $table->string('lng')->nullable();
             $table->timestamps();
         });
     }

@@ -15,7 +15,12 @@ class Application extends Model
         'status',
         'message',
         'workerIsRated',
-        'employerIsRated'
+        'employerIsRated',
+
+        'interview_date',
+        'interview_location',
+        'lat',
+        'lng',
     ];
 
 

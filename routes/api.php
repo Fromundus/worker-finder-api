@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\FileController;
+use App\Http\Controllers\Api\ProjectController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\ApplicationController;
 use App\Http\Controllers\BookingController;
@@ -91,6 +92,11 @@ Route::middleware(['auth:sanctum', 'active'])->group(function(){
     // Messages
     Route::get('/conversations/{conversation}/messages', [MessageController::class, 'index']);
     Route::post('/conversations/{conversation}/messages', [MessageController::class, 'store']);
+
+    Route::get('/projects/{id}', [ProjectController::class, 'index']);
+    Route::post('/projects', [ProjectController::class, 'store']);
+    Route::put('/projects/{project}', [ProjectController::class, 'update']);
+    Route::delete('/projects/{project}', [ProjectController::class, 'destroy']);
 
     //USER ACCOUNTS
     Route::put('/updateuser/{id}', [UserController::class, 'update']);
