@@ -22,7 +22,7 @@ return new class extends Migration
             $table->date("employerIsRated")->nullable();
 
             $table->date('interview_date')->nullable();
-            $table->date('interview_location')->nullable();
+            $table->string('interview_location')->nullable();
             $table->string('lat')->nullable();
             $table->string('lng')->nullable();
             $table->timestamps();
