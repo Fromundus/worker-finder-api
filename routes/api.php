@@ -119,6 +119,6 @@ Route::get('/test', function(){
 });
 
 Route::get('/test/sms-iprog', function(SMSService $smsservice){
-    $response = $smsservice->sendSms('09605510756', 'testing langs');
+    $response = $smsservice->sendSms('09664574089', 'test message');
     return response()->json($response);
 });
